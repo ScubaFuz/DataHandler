@@ -1,0 +1,116 @@
+Imports Microsoft.VisualBasic
+Imports System
+Imports System.io
+Imports System.Text
+Imports System.Security.Cryptography
+Imports System.Xml
+
+Public Class txt
+
+
+
+    Public Sub ShowDataSet(ByVal dtsTemp As DataSet, ByVal strOutputFile As String)
+        'Show All Tables and Columns...
+        Dim strDataset As String
+        Dim strTable As String
+        Dim strColumns As String
+        Dim strRow As String
+
+        For intTableCount As Integer = 0 To dtsTemp.Tables.Count - 1
+            strTable = "Table: " & intTableCount & ", " & dtsTemp.Tables(intTableCount).TableName
+            strDataset &= strTable
+            strColumns = ""
+            For intColCount As Integer = 0 To dtsTemp.Tables(intTableCount).Columns.Count - 1
+                strColumns &= dtsTemp.Tables(intTableCount).Columns(intColCount).ColumnName & ";"
+            Next
+            strDataset &= vbNewLine & strColumns
+            For intRowCount As Integer = 0 To dtsTemp.Tables(intTableCount).Rows.Count - 1
+                strRow = ""
+                For intColCount As Integer = 0 To dtsTemp.Tables(intTableCount).Columns.Count - 1
+                    strRow &= dtsTemp.Tables(intTableCount).Rows(intRowCount).Item(intColCount) & ";"
+                Next
+                strDataset &= vbNewLine & strRow
+            Next
+            strDataset &= vbNewLine
+            WriteFile(strDataset, strOutputFile)
+        Next
+        System.Diagnostics.Process.Start(strOutputFile)
+    End Sub
+
+
+#End Region
+
+
+#Region "Encryption"
+    '** Encrypt any string using MD5
+    Public Function MD5Encrypt(ByVal strInput As String) As String
+        Dim md5 As New System.Security.Cryptography.MD5CryptoServiceProvider
+        Dim bs As Byte() = md5.ComputeHash(System.Text.Encoding.ASCII.GetBytes(strInput))
+        Dim b As Byte
+        Dim result As New System.Text.StringBuilder
+        For Each b In bs
+            result.Append(b.ToString("x2"))
+        Next
+        Return result.ToString
+    End Function
+
+    ' Encrypt the text
+    Public Shared Function EncryptText(ByVal Text As String, Optional ByVal ProgKey As String = Nothing) As String
+        If ProgKey = Nothing Then ProgKey = "DS%&TS#2"
+        Return Encrypt(Text, ProgKey)
+    End Function
+
+    'Decrypt the text 
+    Public Shared Function DecryptText(ByVal Text As String, Optional ByVal ProgKey As String = Nothing) As String
+        If ProgKey = Nothing Then ProgKey = "DS%&TS#2"
+        Return Decrypt(Text, ProgKey)
+    End Function
+
+    'The function used to encrypt the text
+    Private Shared Function Encrypt(ByVal strText As String, ByVal strEncrKey As String) As String
+        Dim byKey() As Byte = {}
+        Dim IV() As Byte = {&H12, &H34, &H56, &H78, &H90, &HAB, &HCD, &HEF}
+
+        Try
+            byKey = System.Text.Encoding.UTF8.GetBytes(Left(strEncrKey, 8))
+
+            Dim des As New DESCryptoServiceProvider
+            Dim inputByteArray() As Byte = Encoding.UTF8.GetBytes(strText)
+            Dim ms As New MemoryStream
+            Dim cs As New CryptoStream(ms, des.CreateEncryptor(byKey, IV), CryptoStreamMode.Write)
+            cs.Write(inputByteArray, 0, inputByteArray.Length)
+            cs.FlushFinalBlock()
+            Return Convert.ToBase64String(ms.ToArray())
+
+        Catch ex As Exception
+            Return ex.Message
+        End Try
+
+    End Function
+
+    'The function used to decrypt the text
+    Private Shared Function Decrypt(ByVal strText As String, ByVal sDecrKey As String) As String
+        Dim byKey() As Byte = {}
+        Dim IV() As Byte = {&H12, &H34, &H56, &H78, &H90, &HAB, &HCD, &HEF}
+        Dim inputByteArray(strText.Length) As Byte
+
+        Try
+            byKey = System.Text.Encoding.UTF8.GetBytes(Left(sDecrKey, 8))
+            Dim des As New DESCryptoServiceProvider
+            inputByteArray = Convert.FromBase64String(strText)
+            Dim ms As New MemoryStream
+            Dim cs As New CryptoStream(ms, des.CreateDecryptor(byKey, IV), CryptoStreamMode.Write)
+
+            cs.Write(inputByteArray, 0, inputByteArray.Length)
+            cs.FlushFinalBlock()
+            Dim encoding As System.Text.Encoding = System.Text.Encoding.UTF8
+
+            Return encoding.GetString(ms.ToArray())
+
+        Catch ex As Exception
+            Return ex.Message
+        End Try
+
+    End Function
+#End Region
+End Class
