@@ -492,7 +492,7 @@ Public Class txt
             Return xmlEl
         Else
             If Not (InnerText Is Nothing) Then ParentNode.Item(NodeName).InnerText = InnerText
-            Return FindXmlChildNode(ParentNode, NodeName)
+            Return FindXmlChildNode(ParentNode, NodeName, NodeName, InnerText)
         End If
     End Function
 
@@ -520,7 +520,7 @@ Public Class txt
             If SearchValue = Nothing Then
                 strXpath &= "[" & SearchNode & "]"
             ElseIf ReturnNode = SearchNode Then
-                strXpath &= "['" & SearchValue & "']"
+                strXpath &= "[text()='" & SearchValue & "']"
             Else
                 strXpath &= "[" & SearchNode & "='" & SearchValue & "']"
             End If
@@ -538,7 +538,7 @@ Public Class txt
             If SearchValue = Nothing Then
                 strXpath &= "[" & SearchNode & "]"
             ElseIf ReturnNode = SearchNode Then
-                strXpath &= "['.=" & SearchValue & "']"
+                strXpath &= "[text()='" & SearchValue & "']"
             Else
                 strXpath &= "[" & SearchNode & "='" & SearchValue & "']"
             End If
