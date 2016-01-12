@@ -291,7 +291,10 @@ Public Class db
             End While
         End If
         myReader.Close()
-        If DataBase.State = ConnectionState.Open Then DataBase.Close()
+        Try
+            If DataBase.State = ConnectionState.Open Then DataBase.Close()
+        Catch ex As Exception
+        End Try
         myCommand.Dispose()
         dataSet1.Tables.Add(dsTable1)
         GetSqlData = dataSet1
@@ -377,15 +380,25 @@ Public Class db
         myCommand.Dispose()
     End Sub
 
-    Public Sub UploadSqlData(ByVal objDataTable As DataTable)
+    Public Function UploadSqlData(ByVal objDataTable As DataTable) As Integer
+        Dim intRecordsAffected As Integer = 0
         Dim bcp As System.Data.SqlClient.SqlBulkCopy = New System.Data.SqlClient.SqlBulkCopy(SqlConnection)
         If SqlConnection.State = ConnectionState.Closed Then SqlConnection.Open()
         bcp.DestinationTableName = DataTableName
         Dim reader As DataTableReader = objDataTable.CreateDataReader()
-        bcp.WriteToServer(reader)
+        intRecordsAffected = objDataTable.Rows.Count
+        Try
+            bcp.WriteToServer(reader)
+        Catch ex As Exception
+            Return 0
+        End Try
         'bcp.Close()
-        If SqlConnection.State = ConnectionState.Open Then SqlConnection.Close()
-    End Sub
+        Try
+            If SqlConnection.State = ConnectionState.Open Then SqlConnection.Close()
+        Catch ex As Exception
+        End Try
+        Return intRecordsAffected
+    End Function
 
     Public Function QueryDatabase(ByVal SqlQuery As String, ByVal ReturnData As Boolean) As DataSet
         Dim objDataTemp As New DataSet

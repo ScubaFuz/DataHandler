@@ -373,25 +373,41 @@ Public Class txt
         Else
             csf = SearchOption.TopDirectoryOnly
         End If
-        Dim dirFiles As IO.FileInfo() = dirInfo.GetFiles(strFileFilter, csf)
-        Dim dirFile As IO.FileInfo
-
-        For Each dirFile In dirFiles
-            Dim tRow As DataRow = dsTable1.NewRow
-            dsTable1.Rows.Add(tRow)
-
+        Try
+            Dim dirFiles As IO.FileInfo() = dirInfo.GetFiles(strFileFilter, csf)
+            Dim dirFile As IO.FileInfo
+            For Each dirFile In dirFiles
+                Try
+                    Dim tRow As DataRow = dsTable1.NewRow
+                    dsTable1.Rows.Add(tRow)
+                    dsTable1.Rows(dsTable1.Rows.Count - 1).Item("FileName") = dirFile.Name
+                    dsTable1.Rows(dsTable1.Rows.Count - 1).Item("FileSizeKB") = dirFile.Length / 1024
+                    dsTable1.Rows(dsTable1.Rows.Count - 1).Item("DateCreated") = dirFile.CreationTime
+                    dsTable1.Rows(dsTable1.Rows.Count - 1).Item("DateModified") = dirFile.LastWriteTime
+                    dsTable1.Rows(dsTable1.Rows.Count - 1).Item("FileExtension") = dirFile.Extension
+                    dsTable1.Rows(dsTable1.Rows.Count - 1).Item("FilePath") = dirFile.DirectoryName
+                    dsTable1.Rows(dsTable1.Rows.Count - 1).Item("ReportDate") = Reportdate
+                Catch
+                    'do nothing
+                End Try
+            Next
+        Catch ex As Exception
             Try
-                dsTable1.Rows(dsTable1.Rows.Count - 1).Item("FileName") = dirFile.Name
-                dsTable1.Rows(dsTable1.Rows.Count - 1).Item("FileSizeKB") = dirFile.Length / 1024
-                dsTable1.Rows(dsTable1.Rows.Count - 1).Item("DateCreated") = dirFile.CreationTime
-                dsTable1.Rows(dsTable1.Rows.Count - 1).Item("DateModified") = dirFile.LastWriteTime
-                dsTable1.Rows(dsTable1.Rows.Count - 1).Item("FileExtension") = dirFile.Extension
-                dsTable1.Rows(dsTable1.Rows.Count - 1).Item("FilePath") = dirFile.DirectoryName
+                Dim tRow As DataRow = dsTable1.NewRow
+                dsTable1.Rows.Add(tRow)
+                dsTable1.Rows(dsTable1.Rows.Count - 1).Item("FileName") = "Error Accessing folder or subfolder " & ex.Message
+                dsTable1.Rows(dsTable1.Rows.Count - 1).Item("FileSizeKB") = 0
+                dsTable1.Rows(dsTable1.Rows.Count - 1).Item("DateCreated") = Nothing
+                dsTable1.Rows(dsTable1.Rows.Count - 1).Item("DateModified") = Nothing
+                dsTable1.Rows(dsTable1.Rows.Count - 1).Item("FileExtension") = ""
+                dsTable1.Rows(dsTable1.Rows.Count - 1).Item("FilePath") = strFolderPath
                 dsTable1.Rows(dsTable1.Rows.Count - 1).Item("ReportDate") = Reportdate
-            Catch ex As Exception
-                Return Nothing
+            Catch
+                'do nothing
             End Try
-        Next
+        End Try
+
+
 
         'If Directory.GetDirectories(dirInfo.FullName).Length > 0 Then
         '    For Each childFolder As String In Directory.GetDirectories(dirInfo.FullName)
