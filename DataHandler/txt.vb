@@ -534,7 +534,11 @@ Public Class txt
             strXpath &= "[1]"
         Else
             If SearchValue = Nothing Then
-                strXpath &= "[" & SearchNode & "]"
+                If ReturnNode = SearchNode Then
+                    strXpath &= "[1]"
+                Else
+                    strXpath &= "[" & SearchNode & "]"
+                End If
             ElseIf ReturnNode = SearchNode Then
                 strXpath &= "[text()='" & SearchValue & "']"
             Else
@@ -552,7 +556,11 @@ Public Class txt
             strXpath &= "[1]"
         Else
             If SearchValue = Nothing Then
-                strXpath &= "[" & SearchNode & "]"
+                If ReturnNode = SearchNode Then
+                    strXpath &= "[1]"
+                Else
+                    strXpath &= "[" & SearchNode & "]"
+                End If
             ElseIf ReturnNode = SearchNode Then
                 strXpath &= "[text()='" & SearchValue & "']"
             Else
