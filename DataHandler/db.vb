@@ -230,6 +230,7 @@ Public Class db
 
         Return SqlVersion
     End Function
+
 #Region "Data Retrieval"
     Public Sub TestSQLConnection(ByVal DataBase As System.Data.SqlClient.SqlConnection)
         Dim blnConnection As Boolean = False
@@ -256,24 +257,24 @@ Public Class db
         If DataBase.State = ConnectionState.Closed Then DataBase.Open()
         Dim myReader As System.Data.SqlClient.SqlDataReader = myCommand.ExecuteReader(CommandBehavior.CloseConnection)
 
-        Dim dsTable1 As New DataTable("Table1")
+        Dim dteInput As New DataTable("Table1")
         Dim RecordCount As Integer = 0
         'Dim Records As String
 
         If myReader.HasRows() = True Then
             While myReader.Read()
-                Dim tRow As DataRow = dsTable1.NewRow
-                dsTable1.Rows.Add(tRow)
+                Dim tRow As DataRow = dteInput.NewRow
+                dteInput.Rows.Add(tRow)
 
                 Dim i As Integer = 0
                 If RecordCount = 0 Then
                     For i = 0 To myReader.FieldCount - 1
                         Dim Column As New DataColumn(myReader.GetName(i))
                         Column.DataType = myReader.GetFieldType(i)
-                        dsTable1.Columns.Add(Column)
+                        dteInput.Columns.Add(Column)
 
                         Try
-                            dsTable1.Rows(RecordCount).Item(i) = myReader(i)
+                            dteInput.Rows(RecordCount).Item(i) = myReader(i)
                         Catch ex As Exception
                             dbMessage = ex.Message
                         End Try
@@ -281,7 +282,7 @@ Public Class db
                 Else
                     For i = 0 To myReader.FieldCount - 1
                         Try
-                            dsTable1.Rows(RecordCount).Item(i) = myReader(i)
+                            dteInput.Rows(RecordCount).Item(i) = myReader(i)
                         Catch ex As Exception
                             dbMessage = ex.Message
                         End Try
@@ -296,7 +297,7 @@ Public Class db
         Catch ex As Exception
         End Try
         myCommand.Dispose()
-        dataSet1.Tables.Add(dsTable1)
+        dataSet1.Tables.Add(dteInput)
         GetSqlData = dataSet1
 
     End Function
@@ -308,24 +309,24 @@ Public Class db
         If DataBase.State = ConnectionState.Closed Then DataBase.Open()
         Dim myReader As System.Data.OleDb.OleDbDataReader = myCommand.ExecuteReader(CommandBehavior.CloseConnection)
 
-        Dim dsTable1 As New DataTable("Table1")
+        Dim dteInput As New DataTable("Table1")
         Dim RecordCount As Integer = 0
         'Dim Records As String
 
         If myReader.HasRows() = True Then
             While myReader.Read()
-                Dim tRow As DataRow = dsTable1.NewRow
-                dsTable1.Rows.Add(tRow)
+                Dim tRow As DataRow = dteInput.NewRow
+                dteInput.Rows.Add(tRow)
 
                 Dim i As Integer = 0
                 If RecordCount = 0 Then
                     For i = 0 To myReader.FieldCount - 1
                         Dim Column As New DataColumn(myReader.GetName(i))
                         Column.DataType = myReader.GetFieldType(i)
-                        dsTable1.Columns.Add(Column)
+                        dteInput.Columns.Add(Column)
 
                         Try
-                            dsTable1.Rows(RecordCount).Item(i) = myReader(i)
+                            dteInput.Rows(RecordCount).Item(i) = myReader(i)
                         Catch ex As Exception
                             dbMessage = ex.Message
                         End Try
@@ -333,7 +334,7 @@ Public Class db
                 Else
                     For i = 0 To myReader.FieldCount - 1
                         Try
-                            dsTable1.Rows(RecordCount).Item(i) = myReader(i)
+                            dteInput.Rows(RecordCount).Item(i) = myReader(i)
                         Catch ex As Exception
                             dbMessage = ex.Message
                         End Try
@@ -345,7 +346,7 @@ Public Class db
         myReader.Close()
         If DataBase.State = ConnectionState.Open Then DataBase.Close()
         myCommand.Dispose()
-        dataSet1.Tables.Add(dsTable1)
+        dataSet1.Tables.Add(dteInput)
         GetAccessData = dataSet1
 
     End Function

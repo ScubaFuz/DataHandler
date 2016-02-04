@@ -325,48 +325,47 @@ Public Class txt
 
     Public Function GetFilesInfo(ByVal strFolderPath As String, ByVal strFileFilter As String) As DataSet
         Dim dataSet1 As New DataSet("DataSet1")
-        Dim dsTable1 As New DataTable("Table1")
+        Dim dteInput As New DataTable("Table1")
         Dim RecordCount As Integer = 0
 
         Dim Column1 As New DataColumn("FileName")
         Column1.DataType = System.Type.GetType("System.String")
-        dsTable1.Columns.Add(Column1)
+        dteInput.Columns.Add(Column1)
 
         Dim Column2 As New DataColumn("FileSizeKB")
         Column2.DataType = System.Type.GetType("System.Int32")
-        dsTable1.Columns.Add(Column2)
+        dteInput.Columns.Add(Column2)
 
         Dim Column3 As New DataColumn("DateCreated")
         Column3.DataType = System.Type.GetType("System.DateTime")
-        dsTable1.Columns.Add(Column3)
+        dteInput.Columns.Add(Column3)
 
         Dim Column4 As New DataColumn("DateModified")
         Column4.DataType = System.Type.GetType("System.DateTime")
-        dsTable1.Columns.Add(Column4)
+        dteInput.Columns.Add(Column4)
 
         Dim Column5 As New DataColumn("FileExtension")
         Column5.DataType = System.Type.GetType("System.String")
-        dsTable1.Columns.Add(Column5)
+        dteInput.Columns.Add(Column5)
 
         Dim Column6 As New DataColumn("FilePath")
         Column6.DataType = System.Type.GetType("System.String")
-        dsTable1.Columns.Add(Column6)
+        dteInput.Columns.Add(Column6)
 
         Dim Column7 As New DataColumn("ReportDate")
         Column7.DataType = System.Type.GetType("System.DateTime")
-        dsTable1.Columns.Add(Column7)
+        dteInput.Columns.Add(Column7)
 
         If strFileFilter = "" Then strFileFilter = "*.*"
-        CrawlFolder(dsTable1, strFolderPath, strFileFilter)
+        dteInput = CrawlFolder(dteInput, strFolderPath, strFileFilter)
 
-        dataSet1.Tables.Add(dsTable1)
+        dataSet1.Tables.Add(dteInput)
         GetFilesInfo = dataSet1
 
     End Function
 
-    Private Function CrawlFolder(ByVal dsTable1 As DataTable, ByVal strFolderPath As String, ByVal strFileFilter As String) As DataTable
+    Private Function CrawlFolderFast(ByVal dsTable1 As DataTable, ByVal strFolderPath As String, ByVal strFileFilter As String) As DataTable
         Dim csf As New SearchOption
-        Dim Reportdate As Date = Now()
         Dim dirInfo As New IO.DirectoryInfo(strFolderPath)
         If SubFolders = True Then
             csf = SearchOption.AllDirectories
@@ -386,7 +385,7 @@ Public Class txt
                     dsTable1.Rows(dsTable1.Rows.Count - 1).Item("DateModified") = dirFile.LastWriteTime
                     dsTable1.Rows(dsTable1.Rows.Count - 1).Item("FileExtension") = dirFile.Extension
                     dsTable1.Rows(dsTable1.Rows.Count - 1).Item("FilePath") = dirFile.DirectoryName
-                    dsTable1.Rows(dsTable1.Rows.Count - 1).Item("ReportDate") = Reportdate
+                    dsTable1.Rows(dsTable1.Rows.Count - 1).Item("ReportDate") = Now
                 Catch
                     'do nothing
                 End Try
@@ -401,21 +400,144 @@ Public Class txt
                 dsTable1.Rows(dsTable1.Rows.Count - 1).Item("DateModified") = Nothing
                 dsTable1.Rows(dsTable1.Rows.Count - 1).Item("FileExtension") = ""
                 dsTable1.Rows(dsTable1.Rows.Count - 1).Item("FilePath") = strFolderPath
-                dsTable1.Rows(dsTable1.Rows.Count - 1).Item("ReportDate") = Reportdate
+                dsTable1.Rows(dsTable1.Rows.Count - 1).Item("ReportDate") = Now
             Catch
                 'do nothing
             End Try
         End Try
 
-
-
-        'If Directory.GetDirectories(dirInfo.FullName).Length > 0 Then
-        '    For Each childFolder As String In Directory.GetDirectories(dirInfo.FullName)
-        '        CrawlFolder(dsTable1, childFolder, strFileFilter)
-        '    Next
-        'End If
-
         Return dsTable1
+    End Function
+
+    Private Function CrawlFolder(ByVal dteInput As DataTable, ByVal strFolderPath As String, ByVal strFileFilter As String) As DataTable
+        Dim dirInfo As New IO.DirectoryInfo(strFolderPath)
+
+        Try
+            dteInput = Crawlfiles(dteInput, dirInfo, strFileFilter)
+
+            If SubFolders = True Then
+                Try
+                    For Each dioSubDir As DirectoryInfo In dirInfo.GetDirectories
+                        Try
+                            dteInput = CrawlSubFolder(dteInput, dioSubDir, strFileFilter)
+                        Catch ex As Exception
+                            Dim tRow As DataRow = dteInput.NewRow
+                            dteInput.Rows.Add(tRow)
+                            dteInput.Rows(dteInput.Rows.Count - 1).Item("FileName") = "Error Accessing folder or subfolder"
+                            dteInput.Rows(dteInput.Rows.Count - 1).Item("FileSizeKB") = 0
+                            dteInput.Rows(dteInput.Rows.Count - 1).Item("DateCreated") = Nothing
+                            dteInput.Rows(dteInput.Rows.Count - 1).Item("DateModified") = Nothing
+                            dteInput.Rows(dteInput.Rows.Count - 1).Item("FileExtension") = ""
+                            dteInput.Rows(dteInput.Rows.Count - 1).Item("FilePath") = ex.Message
+                            dteInput.Rows(dteInput.Rows.Count - 1).Item("ReportDate") = Now
+                            Continue For
+                        End Try
+                    Next
+                Catch ex As Exception
+                    Try
+                        Dim tRow As DataRow = dteInput.NewRow
+                        dteInput.Rows.Add(tRow)
+                        dteInput.Rows(dteInput.Rows.Count - 1).Item("FileName") = "Error Accessing main folder"
+                        dteInput.Rows(dteInput.Rows.Count - 1).Item("FileSizeKB") = 0
+                        dteInput.Rows(dteInput.Rows.Count - 1).Item("DateCreated") = Nothing
+                        dteInput.Rows(dteInput.Rows.Count - 1).Item("DateModified") = Nothing
+                        dteInput.Rows(dteInput.Rows.Count - 1).Item("FileExtension") = ""
+                        dteInput.Rows(dteInput.Rows.Count - 1).Item("FilePath") = ex.Message
+                        dteInput.Rows(dteInput.Rows.Count - 1).Item("ReportDate") = Now
+                    Catch
+                        'do nothing
+                    End Try
+                End Try
+            End If
+        Catch ex As Exception
+            Try
+                Dim tRow As DataRow = dteInput.NewRow
+                dteInput.Rows.Add(tRow)
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("FileName") = "Error Accessing main folder"
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("FileSizeKB") = 0
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("DateCreated") = Nothing
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("DateModified") = Nothing
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("FileExtension") = ""
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("FilePath") = ex.Message
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("ReportDate") = Now
+            Catch
+                'do nothing
+            End Try
+        End Try
+
+        Return dteInput
+    End Function
+
+    Private Function CrawlSubFolder(ByVal dteInput As DataTable, ByVal dioSubDir As DirectoryInfo, ByVal strFileFilter As String) As DataTable
+        Try
+            dteInput = Crawlfiles(dteInput, dioSubDir, strFileFilter)
+            If SubFolders = True Then
+                For Each dioSubSubDir As DirectoryInfo In dioSubDir.GetDirectories
+                    Try
+                        dteInput = CrawlSubFolder(dteInput, dioSubSubDir, strFileFilter)
+                    Catch ex As Exception
+                        Dim tRow As DataRow = dteInput.NewRow
+                        dteInput.Rows.Add(tRow)
+                        dteInput.Rows(dteInput.Rows.Count - 1).Item("FileName") = "Error Accessing folder or subfolder"
+                        dteInput.Rows(dteInput.Rows.Count - 1).Item("FileSizeKB") = 0
+                        dteInput.Rows(dteInput.Rows.Count - 1).Item("DateCreated") = Nothing
+                        dteInput.Rows(dteInput.Rows.Count - 1).Item("DateModified") = Nothing
+                        dteInput.Rows(dteInput.Rows.Count - 1).Item("FileExtension") = ""
+                        dteInput.Rows(dteInput.Rows.Count - 1).Item("FilePath") = ex.Message
+                        dteInput.Rows(dteInput.Rows.Count - 1).Item("ReportDate") = Now
+                        Continue For
+                    End Try
+                Next
+            End If
+        Catch ex As Exception
+            Try
+                Dim tRow As DataRow = dteInput.NewRow
+                dteInput.Rows.Add(tRow)
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("FileName") = "Error Accessing sub folder"
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("FileSizeKB") = 0
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("DateCreated") = Nothing
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("DateModified") = Nothing
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("FileExtension") = ""
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("FilePath") = ex.Message
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("ReportDate") = Now
+            Catch
+                'do nothing
+            End Try
+        End Try
+
+        Return dteInput
+    End Function
+
+    Private Function Crawlfiles(ByVal dteInput As DataTable, ByVal dioDir As DirectoryInfo, ByVal strFileFilter As String) As DataTable
+        For Each dirFile As IO.FileInfo In dioDir.GetFiles(strFileFilter, SearchOption.TopDirectoryOnly)
+            Try
+                Dim tRow As DataRow = dteInput.NewRow
+                dteInput.Rows.Add(tRow)
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("FileName") = dirFile.Name
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("FileSizeKB") = dirFile.Length / 1024
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("DateCreated") = dirFile.CreationTime
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("DateModified") = dirFile.LastWriteTime
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("FileExtension") = dirFile.Extension
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("FilePath") = dirFile.DirectoryName
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("ReportDate") = Now
+            Catch ex As Exception
+                Try
+                    Dim tRow As DataRow = dteInput.NewRow
+                    dteInput.Rows.Add(tRow)
+                    dteInput.Rows(dteInput.Rows.Count - 1).Item("FileName") = "Error Accessing file or folder"
+                    dteInput.Rows(dteInput.Rows.Count - 1).Item("FileSizeKB") = 0
+                    dteInput.Rows(dteInput.Rows.Count - 1).Item("DateCreated") = Nothing
+                    dteInput.Rows(dteInput.Rows.Count - 1).Item("DateModified") = Nothing
+                    dteInput.Rows(dteInput.Rows.Count - 1).Item("FileExtension") = ""
+                    dteInput.Rows(dteInput.Rows.Count - 1).Item("FilePath") = ex.Message
+                    dteInput.Rows(dteInput.Rows.Count - 1).Item("ReportDate") = Now
+                    Continue For
+                Catch
+                    Continue For
+                End Try
+            End Try
+        Next
+        Return dteInput
     End Function
 
     Public Function GetFiles(Optional ByVal strFileRoot As String = Nothing, Optional ByVal strFileFilter As String = Nothing) As ArrayList
