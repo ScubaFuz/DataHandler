@@ -161,6 +161,10 @@ Public Class txt
 
         If blnCreateDir = True And blnDirExists = False Then
             Try
+                If Dir.Contains("\") Then
+                    Dim ParentDir As String = Dir.Substring(0, Dir.LastIndexOf("\"))
+                    CheckDir(ParentDir, blnCreateDir)
+                End If
                 If CreateDir(Dir) = True Then blnDirExists = True
             Catch ex As Exception
                 blnDirExists = False
@@ -410,9 +414,9 @@ Public Class txt
     End Function
 
     Private Function CrawlFolder(ByVal dteInput As DataTable, ByVal strFolderPath As String, ByVal strFileFilter As String) As DataTable
-        Dim dirInfo As New IO.DirectoryInfo(strFolderPath)
 
         Try
+            Dim dirInfo As New IO.DirectoryInfo(strFolderPath)
             dteInput = Crawlfiles(dteInput, dirInfo, strFileFilter)
 
             If SubFolders = True Then
@@ -423,12 +427,12 @@ Public Class txt
                         Catch ex As Exception
                             Dim tRow As DataRow = dteInput.NewRow
                             dteInput.Rows.Add(tRow)
-                            dteInput.Rows(dteInput.Rows.Count - 1).Item("FileName") = "Error Accessing folder or subfolder"
-                            dteInput.Rows(dteInput.Rows.Count - 1).Item("FileSizeKB") = 0
-                            dteInput.Rows(dteInput.Rows.Count - 1).Item("DateCreated") = Nothing
-                            dteInput.Rows(dteInput.Rows.Count - 1).Item("DateModified") = Nothing
-                            dteInput.Rows(dteInput.Rows.Count - 1).Item("FileExtension") = ""
-                            dteInput.Rows(dteInput.Rows.Count - 1).Item("FilePath") = ex.Message
+                            dteInput.Rows(dteInput.Rows.Count - 1).Item("FileName") = "Error Accessing folder or subfolder. " & ex.Message
+                            'dteInput.Rows(dteInput.Rows.Count - 1).Item("FileSizeKB") = Nothing
+                            'dteInput.Rows(dteInput.Rows.Count - 1).Item("DateCreated") = Nothing
+                            'dteInput.Rows(dteInput.Rows.Count - 1).Item("DateModified") = Nothing
+                            'dteInput.Rows(dteInput.Rows.Count - 1).Item("FileExtension") = Nothing
+                            dteInput.Rows(dteInput.Rows.Count - 1).Item("FilePath") = "Error on: " & dioSubDir.FullName
                             dteInput.Rows(dteInput.Rows.Count - 1).Item("ReportDate") = Now
                             Continue For
                         End Try
@@ -437,12 +441,12 @@ Public Class txt
                     Try
                         Dim tRow As DataRow = dteInput.NewRow
                         dteInput.Rows.Add(tRow)
-                        dteInput.Rows(dteInput.Rows.Count - 1).Item("FileName") = "Error Accessing main folder"
-                        dteInput.Rows(dteInput.Rows.Count - 1).Item("FileSizeKB") = 0
-                        dteInput.Rows(dteInput.Rows.Count - 1).Item("DateCreated") = Nothing
-                        dteInput.Rows(dteInput.Rows.Count - 1).Item("DateModified") = Nothing
-                        dteInput.Rows(dteInput.Rows.Count - 1).Item("FileExtension") = ""
-                        dteInput.Rows(dteInput.Rows.Count - 1).Item("FilePath") = ex.Message
+                        dteInput.Rows(dteInput.Rows.Count - 1).Item("FileName") = "Error Accessing main folder subfolders. " & ex.Message
+                        'dteInput.Rows(dteInput.Rows.Count - 1).Item("FileSizeKB") = 0
+                        'dteInput.Rows(dteInput.Rows.Count - 1).Item("DateCreated") = Nothing
+                        'dteInput.Rows(dteInput.Rows.Count - 1).Item("DateModified") = Nothing
+                        'dteInput.Rows(dteInput.Rows.Count - 1).Item("FileExtension") = ""
+                        dteInput.Rows(dteInput.Rows.Count - 1).Item("FilePath") = "Error on: " & dirInfo.FullName
                         dteInput.Rows(dteInput.Rows.Count - 1).Item("ReportDate") = Now
                     Catch
                         'do nothing
@@ -453,12 +457,12 @@ Public Class txt
             Try
                 Dim tRow As DataRow = dteInput.NewRow
                 dteInput.Rows.Add(tRow)
-                dteInput.Rows(dteInput.Rows.Count - 1).Item("FileName") = "Error Accessing main folder"
-                dteInput.Rows(dteInput.Rows.Count - 1).Item("FileSizeKB") = 0
-                dteInput.Rows(dteInput.Rows.Count - 1).Item("DateCreated") = Nothing
-                dteInput.Rows(dteInput.Rows.Count - 1).Item("DateModified") = Nothing
-                dteInput.Rows(dteInput.Rows.Count - 1).Item("FileExtension") = ""
-                dteInput.Rows(dteInput.Rows.Count - 1).Item("FilePath") = ex.Message
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("FileName") = "Error Accessing main folder files. " & ex.Message
+                'dteInput.Rows(dteInput.Rows.Count - 1).Item("FileSizeKB") = 0
+                'dteInput.Rows(dteInput.Rows.Count - 1).Item("DateCreated") = Nothing
+                'dteInput.Rows(dteInput.Rows.Count - 1).Item("DateModified") = Nothing
+                'dteInput.Rows(dteInput.Rows.Count - 1).Item("FileExtension") = ""
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("FilePath") = "Error on: " & strFolderPath
                 dteInput.Rows(dteInput.Rows.Count - 1).Item("ReportDate") = Now
             Catch
                 'do nothing
@@ -478,12 +482,12 @@ Public Class txt
                     Catch ex As Exception
                         Dim tRow As DataRow = dteInput.NewRow
                         dteInput.Rows.Add(tRow)
-                        dteInput.Rows(dteInput.Rows.Count - 1).Item("FileName") = "Error Accessing folder or subfolder"
-                        dteInput.Rows(dteInput.Rows.Count - 1).Item("FileSizeKB") = 0
-                        dteInput.Rows(dteInput.Rows.Count - 1).Item("DateCreated") = Nothing
-                        dteInput.Rows(dteInput.Rows.Count - 1).Item("DateModified") = Nothing
-                        dteInput.Rows(dteInput.Rows.Count - 1).Item("FileExtension") = ""
-                        dteInput.Rows(dteInput.Rows.Count - 1).Item("FilePath") = ex.Message
+                        dteInput.Rows(dteInput.Rows.Count - 1).Item("FileName") = "Error Accessing subfolder. " & ex.Message
+                        'dteInput.Rows(dteInput.Rows.Count - 1).Item("FileSizeKB") = 0
+                        'dteInput.Rows(dteInput.Rows.Count - 1).Item("DateCreated") = Nothing
+                        'dteInput.Rows(dteInput.Rows.Count - 1).Item("DateModified") = Nothing
+                        'dteInput.Rows(dteInput.Rows.Count - 1).Item("FileExtension") = ""
+                        dteInput.Rows(dteInput.Rows.Count - 1).Item("FilePath") = "Error on: " & dioSubSubDir.FullName
                         dteInput.Rows(dteInput.Rows.Count - 1).Item("ReportDate") = Now
                         Continue For
                     End Try
@@ -493,12 +497,12 @@ Public Class txt
             Try
                 Dim tRow As DataRow = dteInput.NewRow
                 dteInput.Rows.Add(tRow)
-                dteInput.Rows(dteInput.Rows.Count - 1).Item("FileName") = "Error Accessing sub folder"
-                dteInput.Rows(dteInput.Rows.Count - 1).Item("FileSizeKB") = 0
-                dteInput.Rows(dteInput.Rows.Count - 1).Item("DateCreated") = Nothing
-                dteInput.Rows(dteInput.Rows.Count - 1).Item("DateModified") = Nothing
-                dteInput.Rows(dteInput.Rows.Count - 1).Item("FileExtension") = ""
-                dteInput.Rows(dteInput.Rows.Count - 1).Item("FilePath") = ex.Message
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("FileName") = "Error Accessing sub folder. " & ex.Message
+                'dteInput.Rows(dteInput.Rows.Count - 1).Item("FileSizeKB") = 0
+                'dteInput.Rows(dteInput.Rows.Count - 1).Item("DateCreated") = ""
+                'dteInput.Rows(dteInput.Rows.Count - 1).Item("DateModified") = ""
+                'dteInput.Rows(dteInput.Rows.Count - 1).Item("FileExtension") = ""
+                dteInput.Rows(dteInput.Rows.Count - 1).Item("FilePath") = "Error on: " & dioSubDir.FullName
                 dteInput.Rows(dteInput.Rows.Count - 1).Item("ReportDate") = Now
             Catch
                 'do nothing
@@ -524,12 +528,16 @@ Public Class txt
                 Try
                     Dim tRow As DataRow = dteInput.NewRow
                     dteInput.Rows.Add(tRow)
-                    dteInput.Rows(dteInput.Rows.Count - 1).Item("FileName") = "Error Accessing file or folder"
-                    dteInput.Rows(dteInput.Rows.Count - 1).Item("FileSizeKB") = 0
-                    dteInput.Rows(dteInput.Rows.Count - 1).Item("DateCreated") = Nothing
-                    dteInput.Rows(dteInput.Rows.Count - 1).Item("DateModified") = Nothing
-                    dteInput.Rows(dteInput.Rows.Count - 1).Item("FileExtension") = ""
-                    dteInput.Rows(dteInput.Rows.Count - 1).Item("FilePath") = ex.Message
+                    dteInput.Rows(dteInput.Rows.Count - 1).Item("FileName") = "Error Accessing file. " & ex.Message
+                    'dteInput.Rows(dteInput.Rows.Count - 1).Item("FileSizeKB") = 0
+                    'dteInput.Rows(dteInput.Rows.Count - 1).Item("DateCreated") = 0
+                    'dteInput.Rows(dteInput.Rows.Count - 1).Item("DateModified") = 0
+                    'dteInput.Rows(dteInput.Rows.Count - 1).Item("FileExtension") = ex.GetType().ToString
+                    If ex.Message.Contains("The specified path, file name, or both are too long") Then
+                        dteInput.Rows(dteInput.Rows.Count - 1).Item("FilePath") = "Error on: " & dioDir.FullName
+                    Else
+                        dteInput.Rows(dteInput.Rows.Count - 1).Item("FilePath") = "Error on: " & dirFile.FullName
+                    End If
                     dteInput.Rows(dteInput.Rows.Count - 1).Item("ReportDate") = Now
                     Continue For
                 Catch
@@ -748,7 +756,11 @@ Public Class txt
         Return xmlDoc
     End Function
 
-    Public Sub SaveXmlFile(ByVal xmlDoc As XmlDocument, ByVal FileName As String)
+    Public Sub SaveXmlFile(ByVal xmlDoc As XmlDocument, ByVal FileName As String, Optional ByVal CreateDir As Boolean = False)
+        If FileName.Contains("\") Then
+            If CheckDir(FileName.Substring(0, FileName.LastIndexOf("\")), CreateDir) = False Then Exit Sub
+        End If
+
         Dim tmpFile As String
         tmpFile = PathConvert(FileName) & ".tmp"
         Dim tmpFileInfo As New FileInfo(tmpFile)
