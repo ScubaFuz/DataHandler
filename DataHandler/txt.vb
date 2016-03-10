@@ -756,6 +756,16 @@ Public Class txt
         Return xmlDoc
     End Function
 
+    Public Function RemoveChildNode(ByVal xmlParentNode As XmlNode, ByVal OldNode As String, ByVal SearchNode As String, ByVal SearchValue As String) As XmlNode
+        '** Remove the old node
+        Dim tmpNode As XmlNode = FindXmlChildNode(xmlParentNode, OldNode, SearchNode, SearchValue)
+        If Not tmpNode Is Nothing Then
+            'xmlDoc.Item("Sequenchel").Item("DataBases").RemoveChild(tmpNode)
+            tmpNode.ParentNode.RemoveChild(tmpNode)
+        End If
+        Return xmlParentNode
+    End Function
+
     Public Sub SaveXmlFile(ByVal xmlDoc As XmlDocument, ByVal FileName As String, Optional ByVal CreateDir As Boolean = False)
         If FileName.Contains("\") Then
             If CheckDir(FileName.Substring(0, FileName.LastIndexOf("\")), CreateDir) = False Then Exit Sub
