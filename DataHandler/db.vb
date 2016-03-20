@@ -153,6 +153,7 @@ Public Class db
 
 #End Region
 
+#Region "Connection"
     Private Sub SetDataConnectionString()
         If SqlConnection.State = ConnectionState.Open Then SqlConnection.Close()
         If _DataProvider = Nothing Or _DataLocation = Nothing Or _DatabaseName = Nothing Or _LoginMethod = Nothing Then
@@ -206,6 +207,24 @@ Public Class db
         End If
     End Sub
 
+    Public Sub TestSQLConnection(ByVal DataBase As System.Data.SqlClient.SqlConnection)
+        Dim blnConnection As Boolean = False
+        Try
+            If DataBase.State = ConnectionState.Open Then DataBase.Close()
+            If DataBase.State = ConnectionState.Closed Then DataBase.Open()
+            If DataBase.State = ConnectionState.Open Then
+                DataBaseOnline = True
+            Else
+                DataBaseOnline = False
+            End If
+            If DataBase.State = ConnectionState.Open Then DataBase.Close()
+        Catch ex As Exception
+            DataBaseOnline = False
+        Finally
+            If DataBase.State = ConnectionState.Open Then DataBase.Close()
+        End Try
+    End Sub
+
     Public Function GetSqlVersion() As Integer
         Dim strQuery As String = "exec [master].[dbo].[sp_server_info] 500"
         Dim dtsData As DataSet = QueryDatabase(strQuery, True)
@@ -230,25 +249,27 @@ Public Class db
 
         Return SqlVersion
     End Function
+#End Region
 
-#Region "Data Retrieval"
-    Public Sub TestSQLConnection(ByVal DataBase As System.Data.SqlClient.SqlConnection)
-        Dim blnConnection As Boolean = False
-        Try
-            If DataBase.State = ConnectionState.Open Then DataBase.Close()
-            If DataBase.State = ConnectionState.Closed Then DataBase.Open()
-            If DataBase.State = ConnectionState.Open Then
-                DataBaseOnline = True
-            Else
-                DataBaseOnline = False
+#Region "Data Actions"
+    Public Function QueryDatabase(ByVal SqlQuery As String, ByVal ReturnData As Boolean) As DataSet
+        Dim objDataTemp As New DataSet
+
+        If UCase(_DataProvider) = "SQL" Then
+            If ReturnData = True Then
+                objDataTemp = GetSqlData(SqlQuery, SqlConnection)
+            ElseIf ReturnData = False Then
+                UpdateSqlData(SqlQuery, SqlConnection)
             End If
-            If DataBase.State = ConnectionState.Open Then DataBase.Close()
-        Catch ex As Exception
-            DataBaseOnline = False
-        Finally
-            If DataBase.State = ConnectionState.Open Then DataBase.Close()
-        End Try
-    End Sub
+        ElseIf UCase(_DataProvider) = "ACCESS" Then
+            If ReturnData = True Then
+                objDataTemp = GetAccessData(SqlQuery, AccessConnection)
+            ElseIf ReturnData = False Then
+                UpdateAccessData(SqlQuery, AccessConnection)
+            End If
+        End If
+        QueryDatabase = objDataTemp
+    End Function
 
     Private Function GetSqlData(ByVal mySelectQuery As String, ByVal DataBase As System.Data.SqlClient.SqlConnection) As DataSet
         dbMessage = Nothing
@@ -381,6 +402,14 @@ Public Class db
         myCommand.Dispose()
     End Sub
 
+    Public Function UploadSqlDataSet(ByVal objDataSet As DataSet) As Integer
+        Dim intRecordsAffected As Integer = 0
+        For Each objDataTable As DataTable In objDataSet.Tables
+            intRecordsAffected += UploadSqlData(objDataTable)
+        Next
+        Return intRecordsAffected
+    End Function
+
     Public Function UploadSqlData(ByVal objDataTable As DataTable) As Integer
         Dim intRecordsAffected As Integer = 0
         Dim bcp As System.Data.SqlClient.SqlBulkCopy = New System.Data.SqlClient.SqlBulkCopy(SqlConnection)
@@ -401,25 +430,6 @@ Public Class db
         Return intRecordsAffected
     End Function
 
-    Public Function QueryDatabase(ByVal SqlQuery As String, ByVal ReturnData As Boolean) As DataSet
-        Dim objDataTemp As New DataSet
-
-        If UCase(_DataProvider) = "SQL" Then
-            If ReturnData = True Then
-                objDataTemp = GetSqlData(SqlQuery, SqlConnection)
-            ElseIf ReturnData = False Then
-                UpdateSqlData(SqlQuery, SqlConnection)
-            End If
-        ElseIf UCase(_DataProvider) = "ACCESS" Then
-            If ReturnData = True Then
-                objDataTemp = GetAccessData(SqlQuery, AccessConnection)
-            ElseIf ReturnData = False Then
-                UpdateAccessData(SqlQuery, AccessConnection)
-            End If
-        End If
-        QueryDatabase = objDataTemp
-    End Function
-
     Public Sub WriteLog(ByVal LogText As String, ByVal EntryLevel As Integer, ByVal LogLevel As Integer, Optional ByVal Sender As String = "")
         Dim booLogItem As Boolean = False
         If Sender = Nothing Then Sender = Environment.MachineName
@@ -433,6 +443,40 @@ Public Class db
         End If
 
     End Sub
+
+    Public Function ReplaceNulls(dtsInput As DataSet) As DataSet
+        Dim dtsOutput As New DataSet
+        Dim row As DataRow
+        Dim col As DataColumn
+
+        For Each Table As DataTable In dtsInput.Tables
+            Dim newTable As DataTable = Table.Clone
+            For Each colOrg As DataColumn In newTable.Columns
+                colOrg.DataType = System.Type.GetType("System.String")
+            Next
+            For Each rowOrg As DataRow In Table.Rows
+                newTable.ImportRow(rowOrg)
+            Next
+            dtsOutput.Tables.Add(newTable)
+
+            For Each row In newTable.Rows
+                For Each col In newTable.Columns
+                    If row.IsNull(col) Then
+                        Select Case Type.GetTypeCode(col.DataType)
+                            Case TypeCode.Int32
+                                row.Item(col) = 0
+                            Case TypeCode.String
+                                row.Item(col) = ""
+                            Case Else
+                                row.Item(col) = ""
+                        End Select
+                    End If
+                Next
+            Next
+        Next
+        Return dtsOutput
+    End Function
+
 #End Region
 
 

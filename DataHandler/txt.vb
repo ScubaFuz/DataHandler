@@ -72,16 +72,21 @@ Public Class txt
         Dim booLogItem As Boolean = False
         If Sender = Nothing Then Sender = Environment.MachineName
 
-        If _LogLevel >= EntryLevel Then
-            Dim strDate As String
-            'intDate = Today.Year & [Enum].Format(GetType(Integer), Today.Month, "00") & [Enum].Format(GetType(Integer), Today.Day, "00")
-            strDate = Today.ToString("yyyyMMdd")
-            Dim objWriter As StreamWriter = File.AppendText(PathConvert(_LogLocation) & "\" & strDate & "_" & _LogFileName)
-            'objWriter.WriteLine(Format(GetType(Integer), Now.Hour, "00") & ":" & Format(GetType(Integer), Now.Minute, "00") & ":" & Format(GetType(Integer), Now.Second, "00") & vbTab & LogText)
-            objWriter.WriteLine(Now.ToString("HH:mm:ss") & vbTab & LogText)
-            objWriter.Close()
-            objWriter = Nothing
-        End If
+        Try
+            If _LogLevel >= EntryLevel Then
+                Dim strDate As String
+                'intDate = Today.Year & [Enum].Format(GetType(Integer), Today.Month, "00") & [Enum].Format(GetType(Integer), Today.Day, "00")
+                strDate = Today.ToString("yyyyMMdd")
+                Dim objWriter As StreamWriter = File.AppendText(PathConvert(_LogLocation) & "\" & strDate & "_" & _LogFileName)
+                'objWriter.WriteLine(Format(GetType(Integer), Now.Hour, "00") & ":" & Format(GetType(Integer), Now.Minute, "00") & ":" & Format(GetType(Integer), Now.Second, "00") & vbTab & LogText)
+                objWriter.WriteLine(Now.ToString("HH:mm:ss") & vbTab & LogText)
+                objWriter.Close()
+                objWriter = Nothing
+            End If
+        Catch ex As Exception
+            'Do nothing
+        End Try
+
     End Sub
 
     Public Property Retenion() As String
@@ -107,6 +112,7 @@ Public Class txt
 #Region "Input-Output"
     Private _InputFile As String
     Private _OutputFile As String
+    Private _ImportFile As String
     Private _ExportFile As String
 
     Public Property InputFile() As String
@@ -128,6 +134,15 @@ Public Class txt
             If CheckFileName(Value) = True Then
                 _OutputFile = Value
             End If
+        End Set
+    End Property
+
+    Public Property ImportFile() As String
+        Get
+            Return _ImportFile
+        End Get
+        Set(ByVal Value As String)
+            _ImportFile = Value
         End Set
     End Property
 
@@ -624,10 +639,10 @@ Public Class txt
         Return xmlDoc
     End Function
 
-    Public Function AddNode(ByVal xmldoc As XmlDocument, ByVal ParentNode As String, ByVal NewNode As XmlNode, Optional ByVal SearchNode As String = Nothing, Optional ByVal SearchValue As String = Nothing) As XmlDocument
-        Dim tmpNode As XmlNode = FindXmlNode(xmldoc, ParentNode, SearchNode, SearchValue)
+    Public Function AddNode(ByVal xmlDoc As XmlDocument, ByVal ParentNode As String, ByVal NewNode As XmlNode, Optional ByVal SearchNode As String = Nothing, Optional ByVal SearchValue As String = Nothing) As XmlDocument
+        Dim tmpNode As XmlNode = FindXmlNode(xmlDoc, ParentNode, SearchNode, SearchValue)
         tmpNode.AppendChild(NewNode)
-        Return xmldoc
+        Return xmlDoc
     End Function
 
     Function CreateAppendElement(ByVal ParentNode As XmlNode, ByVal NodeName As String, Optional ByVal InnerText As String = Nothing, Optional ByVal UpdateMode As Boolean = False) As XmlElement
@@ -784,6 +799,35 @@ Public Class txt
         tmpFileInfo.Delete()
     End Sub
 
+    Public Sub SaveXmlFile2(ByVal xmlDoc As XmlDocument, ByVal FileName As String, Optional ByVal CreateDir As Boolean = False)
+        If FileName.Contains("\") Then
+            If CheckDir(FileName.Substring(0, FileName.LastIndexOf("\")), CreateDir) = False Then Exit Sub
+        End If
+
+        Try
+            Using sw As New System.IO.StringWriter()
+                ' Make the XmlTextWriter to format the XML.
+                Using xml_writer As New XmlTextWriter(sw)
+                    xml_writer.Formatting = Formatting.Indented
+                    'dtsInput.WriteXml(xml_writer)
+                    xmlDoc.WriteTo(xml_writer)
+                    xml_writer.Flush()
+
+                    'Write the XML to disk
+                    CreateFile(sw.ToString(), FileName)
+                End Using
+            End Using
+
+        Catch ex As Exception
+            If LogLocation.ToLower = "database" Then
+                Dim dhdDb As New DataHandler.db
+                dhdDb.WriteLog(ex.Message, 1, LogLevel)
+            Else
+                WriteLog(ex.Message, 1, LogLevel)
+            End If
+        End Try
+    End Sub
+
     Public Sub SaveXmlStream(ByVal tmpStream As Stream, ByVal xmlDoc As XmlDocument)
         Dim tmpSerial As New Serialization.XmlSerializer(xmlDoc.GetType)
         tmpSerial.Serialize(tmpStream, xmlDoc)
@@ -797,8 +841,8 @@ Public Class txt
         Return True
     End Function
 
-    Public Function CheckNodeElement(ByVal xmlInput As XmlNode, ByVal strName As String) As Boolean
-        Dim xNode As XmlNode = FindXmlChildNode(xmlInput, strName)
+    Public Function CheckNodeElement(ByVal xmlCheckNode As XmlNode, ByVal strName As String) As Boolean
+        Dim xNode As XmlNode = FindXmlChildNode(xmlCheckNode, strName)
         If xNode Is Nothing Then
             Return False
         End If
@@ -817,6 +861,45 @@ Public Class txt
             Return ReturnValue
         End If
         Return Nothing
+    End Function
+
+    Public Sub ExportDataTableToXML(dttInput As DataTable, strFileName As String)
+        Try
+            Dim dtsInput As New DataSet
+            dtsInput.Tables.Add(dttInput)
+            ExportDataSetToXML(dtsInput, strFileName)
+        Catch ex As Exception
+            If LogLocation.ToLower = "database" Then
+                Dim dhdDb As New DataHandler.db
+                dhdDb.WriteLog(ex.Message, 1, LogLevel)
+            Else
+                WriteLog(ex.Message, 1, LogLevel)
+                'If DevMode Then MessageBox.Show(dhdText.LogFileName & Environment.NewLine & dhdText.LogLocation & Environment.NewLine & dhdText.LogLevel)
+            End If
+        End Try
+    End Sub
+
+    Public Sub ExportDataSetToXML(dtsInput As DataSet, FileName As String, Optional ByVal CreateDir As Boolean = False)
+        Try
+            Dim xmlDocExport As XmlDocument = CreateBasicXmlDocument()
+            xmlDocExport.LoadXml(dtsInput.GetXml())
+            SaveXmlFile2(xmlDocExport, FileName, CreateDir)
+        Catch ex As Exception
+            If LogLocation.ToLower = "database" Then
+                Dim dhdDb As New DataHandler.db
+                dhdDb.WriteLog(ex.Message, 1, LogLevel)
+            Else
+                WriteLog(ex.Message, 1, LogLevel)
+                'If DevMode Then MessageBox.Show(dhdText.LogFileName & Environment.NewLine & dhdText.LogLocation & Environment.NewLine & dhdText.LogLevel)
+            End If
+        End Try
+    End Sub
+
+    Public Function CreateBasicXmlDocument() As XmlDocument
+        Dim xmlDoc As New XmlDocument
+        Dim xmlDec As XmlDeclaration = xmlDoc.CreateXmlDeclaration("1.0", "utf-8", "yes")
+        xmlDoc.InsertBefore(xmlDec, xmlDoc.DocumentElement)
+        Return xmlDoc
     End Function
 
 #End Region
