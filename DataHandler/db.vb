@@ -15,6 +15,8 @@ Public Class db
     Private _SqlVersion As Integer = 0
 
     Public dbMessage As String
+    Private _ErrorLevel As Integer = 0
+    Private _ErrorMessage As String = ""
 
 #Region "Properties"
     Public Property DataProvider() As String
@@ -148,6 +150,24 @@ Public Class db
         End Get
         Set(ByVal Value As Integer)
             _SqlVersion = Value
+        End Set
+    End Property
+
+    Public Property ErrorLevel() As Integer
+        Get
+            Return _ErrorLevel
+        End Get
+        Set(ByVal Value As Integer)
+            _ErrorLevel = Value
+        End Set
+    End Property
+
+    Public Property ErrorMessage() As String
+        Get
+            Return _ErrorMessage
+        End Get
+        Set(ByVal Value As String)
+            _ErrorMessage = Value
         End Set
     End Property
 
@@ -420,7 +440,9 @@ Public Class db
         Try
             bcp.WriteToServer(reader)
         Catch ex As Exception
-            Return 0
+            _ErrorMessage = ex.Message
+            _ErrorLevel = -1
+            intRecordsAffected = -1
         End Try
         'bcp.Close()
         Try
@@ -444,37 +466,67 @@ Public Class db
 
     End Sub
 
-    Public Function ReplaceNulls(dtsInput As DataSet) As DataSet
+    Public Function ConvertToText(dtsInput As DataSet) As DataSet
         Dim dtsOutput As New DataSet
+        'Dim row As DataRow
+        'Dim col As DataColumn
+
+        For Each Table As DataTable In dtsInput.Tables
+            Dim newTable As DataTable = ConvertToText(Table)
+            'Dim newTable As DataTable = Table.Clone
+            'For Each colOrg As DataColumn In newTable.Columns
+            '    colOrg.DataType = System.Type.GetType("System.String")
+            'Next
+            'For Each rowOrg As DataRow In Table.Rows
+            '    newTable.ImportRow(rowOrg)
+            'Next
+            dtsOutput.Tables.Add(newTable)
+
+            'For Each row In newTable.Rows
+            '    For Each col In newTable.Columns
+            '        If row.IsNull(col) Then
+            '            Select Case Type.GetTypeCode(col.DataType)
+            '                Case TypeCode.Int32
+            '                    row.Item(col) = 0
+            '                Case TypeCode.String
+            '                    row.Item(col) = ""
+            '                Case Else
+            '                    row.Item(col) = ""
+            '            End Select
+            '        End If
+            '    Next
+            'Next
+        Next
+        Return dtsOutput
+    End Function
+
+    Public Function ConvertToText(dttInput As DataTable) As DataTable
         Dim row As DataRow
         Dim col As DataColumn
 
-        For Each Table As DataTable In dtsInput.Tables
-            Dim newTable As DataTable = Table.Clone
-            For Each colOrg As DataColumn In newTable.Columns
-                colOrg.DataType = System.Type.GetType("System.String")
-            Next
-            For Each rowOrg As DataRow In Table.Rows
-                newTable.ImportRow(rowOrg)
-            Next
-            dtsOutput.Tables.Add(newTable)
+        Dim newTable As DataTable = dttInput.Clone
+        For Each colNew As DataColumn In newTable.Columns
+            colNew.DataType = System.Type.GetType("System.String")
+        Next
+        For Each rowOrg As DataRow In dttInput.Rows
+            newTable.ImportRow(rowOrg)
+        Next
 
-            For Each row In newTable.Rows
-                For Each col In newTable.Columns
-                    If row.IsNull(col) Then
-                        Select Case Type.GetTypeCode(col.DataType)
-                            Case TypeCode.Int32
-                                row.Item(col) = 0
-                            Case TypeCode.String
-                                row.Item(col) = ""
-                            Case Else
-                                row.Item(col) = ""
-                        End Select
-                    End If
-                Next
+        For Each row In newTable.Rows
+            For Each col In newTable.Columns
+                If row.IsNull(col) Then
+                    Select Case Type.GetTypeCode(col.DataType)
+                        Case TypeCode.Int32
+                            row.Item(col) = 0
+                        Case TypeCode.String
+                            row.Item(col) = ""
+                        Case Else
+                            row.Item(col) = ""
+                    End Select
+                End If
             Next
         Next
-        Return dtsOutput
+        Return newTable
     End Function
 
 #End Region
