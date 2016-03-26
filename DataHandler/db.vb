@@ -468,34 +468,9 @@ Public Class db
 
     Public Function ConvertToText(dtsInput As DataSet) As DataSet
         Dim dtsOutput As New DataSet
-        'Dim row As DataRow
-        'Dim col As DataColumn
-
         For Each Table As DataTable In dtsInput.Tables
             Dim newTable As DataTable = ConvertToText(Table)
-            'Dim newTable As DataTable = Table.Clone
-            'For Each colOrg As DataColumn In newTable.Columns
-            '    colOrg.DataType = System.Type.GetType("System.String")
-            'Next
-            'For Each rowOrg As DataRow In Table.Rows
-            '    newTable.ImportRow(rowOrg)
-            'Next
             dtsOutput.Tables.Add(newTable)
-
-            'For Each row In newTable.Rows
-            '    For Each col In newTable.Columns
-            '        If row.IsNull(col) Then
-            '            Select Case Type.GetTypeCode(col.DataType)
-            '                Case TypeCode.Int32
-            '                    row.Item(col) = 0
-            '                Case TypeCode.String
-            '                    row.Item(col) = ""
-            '                Case Else
-            '                    row.Item(col) = ""
-            '            End Select
-            '        End If
-            '    Next
-            'Next
         Next
         Return dtsOutput
     End Function
@@ -522,6 +497,43 @@ Public Class db
                             row.Item(col) = ""
                         Case Else
                             row.Item(col) = ""
+                    End Select
+                End If
+            Next
+        Next
+        Return newTable
+    End Function
+
+    Public Function EmptyToNull(dtsInput As DataSet) As DataSet
+        Dim dtsOutput As New DataSet
+        For Each Table As DataTable In dtsInput.Tables
+            Dim newTable As DataTable = EmptyToNull(Table)
+            dtsOutput.Tables.Add(newTable)
+        Next
+        Return dtsOutput
+    End Function
+
+    Public Function EmptyToNull(dttInput As DataTable) As DataTable
+        Dim rowSource As DataRow
+        Dim colSource As DataColumn
+
+        Dim newTable As DataTable = dttInput.Clone
+
+        For Each rowSource In dttInput.Rows
+            Dim rowTarget As DataRow = newTable.NewRow
+            newTable.Rows.Add(rowTarget)
+            For Each colSource In dttInput.Columns
+                If Not rowSource.IsNull(colSource) Then
+                    Select Case Type.GetTypeCode(colSource.DataType)
+                        Case TypeCode.Int32
+                            rowTarget.Item(rowSource.Item(colSource).index) = rowSource.Item(colSource)
+                        Case TypeCode.String
+                            Dim DbNothing As String = Nothing
+                            If rowSource.Item(colSource) <> "" Then
+                                rowTarget.Item(colSource.ColumnName) = rowSource.Item(colSource)
+                            End If
+                        Case Else
+                            rowTarget.Item(rowSource.Item(colSource).index) = rowSource.Item(colSource)
                     End Select
                 End If
             Next
