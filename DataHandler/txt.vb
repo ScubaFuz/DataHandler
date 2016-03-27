@@ -304,6 +304,80 @@ Public Class txt
         Return strPath
     End Function
 
+    Public Function CsvToDataSet(strFileName As String, blnHasHeaders As Boolean, Optional Delimiter As String = ",") As DataSet
+        Dim dtsOutput As New DataSet
+        Dim dttOutput As New DataTable
+        dtsOutput.Tables.Add(dttOutput)
+
+        Dim intRowCount As Integer = 0
+
+        Using MyReader As New Microsoft.VisualBasic.FileIO.TextFieldParser(strFileName)
+            MyReader.TextFieldType = FileIO.FieldType.Delimited
+            MyReader.SetDelimiters(Delimiter)
+            Dim currentRow As String()
+            While Not MyReader.EndOfData
+                Try
+                    currentRow = MyReader.ReadFields()
+                    If intRowCount = 0 And blnHasHeaders = False Then
+                        For intColumns As Integer = 1 To currentRow.Count
+                            dttOutput.Columns.Add("col" & intColumns)
+                        Next
+                    End If
+                    If intRowCount > 0 Or blnHasHeaders = False Then dttOutput.Rows.Add()
+
+                    Dim currentField As String
+                    Dim intColCount As Integer = 0
+                    For Each currentField In currentRow
+                        If intRowCount = 0 And blnHasHeaders = True Then
+                            'Create Columns
+                            dttOutput.Columns.Add(currentField)
+                        Else
+                            'fill datarow
+                            dttOutput.Rows(dttOutput.Rows.Count - 1)(intColCount) = currentField
+                        End If
+                        intColCount += 1
+                        'MsgBox(currentField)
+                    Next
+                Catch ex As Microsoft.VisualBasic.
+                            FileIO.MalformedLineException
+                    MsgBox("Line " & ex.Message & "is not valid and will be skipped.")
+                End Try
+                intRowCount += 1
+            End While
+        End Using
+        Return dtsOutput
+    End Function
+
+    Public Function DataSetToCsv(dttSource As DataTable, strFileName As String, Optional blnHasHeaders As Boolean = True, Optional Delimiter As String = ",", Optional QuoteValues As Boolean = False) As Boolean
+        Try
+            Using writer As IO.StreamWriter = New IO.StreamWriter(strFileName)
+                If (blnHasHeaders) Then
+                    Dim headerValues As System.Collections.Generic.IEnumerable(Of String) = dttSource.Columns.OfType(Of DataColumn).Select(Function(column) QuoteValue(column.ColumnName, QuoteValues))
+                    writer.WriteLine(String.Join(Delimiter, headerValues))
+                End If
+
+                Dim items As System.Collections.Generic.IEnumerable(Of String) = Nothing
+                For Each row As DataRow In dttSource.Rows
+                    items = row.ItemArray.Select(Function(obj) QuoteValue(obj.ToString(), QuoteValues))
+                    writer.WriteLine(String.Join(Delimiter, items))
+                Next
+
+                writer.Flush()
+            End Using
+            Return True
+        Catch ex As Exception
+            Return False
+        End Try
+
+    End Function
+
+    Private Function QuoteValue(ByVal value As String, QuoteValues As Boolean) As String
+        If QuoteValues = True Then
+            Return String.Concat("""", value.Replace("""", """"""), """")
+        Else
+            Return value
+        End If
+    End Function
 
 #End Region
 
@@ -881,7 +955,7 @@ Public Class txt
 
     Public Sub ExportDataSetToXML(dtsInput As DataSet, FileName As String, Optional ByVal CreateDir As Boolean = False)
         Try
-            Dim xmlDocExport As XmlDocument = CreateBasicXmlDocument()
+            Dim xmlDocExport As XmlDocument = CreateRootDocument(Nothing, Nothing, Nothing)
             xmlDocExport.LoadXml(dtsInput.GetXml())
             SaveXmlFile2(xmlDocExport, FileName, CreateDir)
         Catch ex As Exception
@@ -895,12 +969,12 @@ Public Class txt
         End Try
     End Sub
 
-    Public Function CreateBasicXmlDocument() As XmlDocument
-        Dim xmlDoc As New XmlDocument
-        Dim xmlDec As XmlDeclaration = xmlDoc.CreateXmlDeclaration("1.0", "utf-8", "yes")
-        xmlDoc.InsertBefore(xmlDec, xmlDoc.DocumentElement)
-        Return xmlDoc
-    End Function
+    'Public Function CreateBasicXmlDocument() As XmlDocument
+    '    Dim xmlDoc As New XmlDocument
+    '    Dim xmlDec As XmlDeclaration = xmlDoc.CreateXmlDeclaration("1.0", "utf-8", "yes")
+    '    xmlDoc.InsertBefore(xmlDec, xmlDoc.DocumentElement)
+    '    Return xmlDoc
+    'End Function
 
 #End Region
 
