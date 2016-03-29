@@ -7,6 +7,7 @@ Imports System.Xml
 Imports System.Security.Cryptography
 Imports System.Text
 Imports System.Environment.SpecialFolder
+Imports System.Net.Mail
 
 Public Class txt
 
@@ -94,7 +95,7 @@ Public Class txt
             Return _Retenion
         End Get
         Set(ByVal Value As String)
-                _Retenion = Value
+            _Retenion = Value
         End Set
     End Property
 
@@ -377,6 +378,67 @@ Public Class txt
         Else
             Return value
         End If
+    End Function
+
+    Public Function DataSetToHtml(dtsInput As DataSet) As String
+        If dtsInput Is Nothing Then Return Nothing
+        If dtsInput.Tables.Count = 0 Then Return Nothing
+        Dim strReturn As String = ""
+        For Each tblTable As DataTable In dtsInput.Tables
+            strReturn &= DataSetToHtml(tblTable)
+            strReturn &= Environment.NewLine
+        Next
+        Return strReturn
+    End Function
+
+    Public Function DataSetToHtml(dttInput As DataTable) As String
+        Dim sbrHtml As New StringBuilder
+        sbrHtml.AppendLine("<html><head><title>" & dttInput.TableName & "</title></head>")
+        sbrHtml.AppendLine("<body><center><table border='1' cellpadding='0' cellspacing='0'>")
+        sbrHtml.AppendLine("<tr>")
+
+        For Each dcnCol As DataColumn In dttInput.Columns
+            sbrHtml.Append("<td align='center' valign='middle'>" & dcnCol.ColumnName & "</td>")
+        Next
+        sbrHtml.Append("</tr>")
+
+        For Each drwRow As DataRow In dttInput.Rows
+            sbrHtml.AppendLine("<tr>")
+            For Each dcnDataCol As DataColumn In dttInput.Columns
+                'sbrHtml.Append("<td align='left' valign='middle'>" & If(IsNothing(drwRow(dcnDataCol.ColumnName)), drwRow(dcnDataCol.ColumnName).ToString(), "") & "</td>")
+                sbrHtml.Append("<td align='left' valign='middle'>" & drwRow(dcnDataCol.ColumnName) & "</td>")
+            Next
+            sbrHtml.Append("</tr>")
+        Next
+
+        sbrHtml.AppendLine("</table></center></body></html>")
+
+        Return sbrHtml.ToString()
+    End Function
+
+    Public Function DeleteFile(FileName As String, Optional Confirm As Boolean = False, Optional Recycle As Boolean = False) As Boolean
+        Try
+            If CheckFile(FileName) = True Then
+                Dim ronRecycle As New FileIO.RecycleOption
+                If Recycle = True Then
+                    ronRecycle = FileIO.RecycleOption.SendToRecycleBin
+                Else
+                    ronRecycle = FileIO.RecycleOption.DeletePermanently
+                End If
+                Dim uioConfirm As New FileIO.UIOption
+                If Confirm = True Then
+                    uioConfirm = FileIO.UIOption.AllDialogs
+                Else
+                    uioConfirm = FileIO.UIOption.OnlyErrorDialogs
+                End If
+                My.Computer.FileSystem.DeleteFile(PathConvert(FileName), uioConfirm, ronRecycle)
+                Return True
+            Else
+                Return False
+            End If
+        Catch ex As Exception
+            Return False
+        End Try
     End Function
 
 #End Region
@@ -1051,4 +1113,127 @@ Public Class txt
     End Function
 #End Region
 
+#Region "Mail"
+    Private _SmtpServer As String = ""
+    Private _SmtpCredentials As Boolean = 1
+    Private _SmtpUser As String = ""
+    Private _SmtpPassword As String = ""
+    Private _SmtpReply As String = ""
+    Private _SmtpSsl As Boolean = 1
+    Private _SmtpPort As Integer = 25
+
+    Public Property SmtpServer() As String
+        Get
+            Return _SmtpServer
+        End Get
+        Set(ByVal Value As String)
+            _SmtpServer = Value
+        End Set
+    End Property
+
+    Public Property SmtpCredentials() As Boolean
+        Get
+            Return _SmtpCredentials
+        End Get
+        Set(ByVal Value As Boolean)
+            _SmtpCredentials = Value
+        End Set
+    End Property
+
+    Public Property SmtpUser() As String
+        Get
+            Return _SmtpUser
+        End Get
+        Set(ByVal Value As String)
+            _SmtpUser = Value
+        End Set
+    End Property
+
+    Public Property SmtpPassword() As String
+        Get
+            Return _SmtpPassword
+        End Get
+        Set(ByVal Value As String)
+            _SmtpPassword = Value
+        End Set
+    End Property
+
+    Public Property SmtpReply() As String
+        Get
+            Return _SmtpReply
+        End Get
+        Set(ByVal Value As String)
+            _SmtpReply = Value
+        End Set
+    End Property
+
+    Public Property SmtpSsl() As Boolean
+        Get
+            Return _SmtpSsl
+        End Get
+        Set(ByVal Value As Boolean)
+            _SmtpSsl = Value
+        End Set
+    End Property
+
+    Public Property SmtpPort() As Integer
+        Get
+            Return _SmtpPort
+        End Get
+        Set(ByVal Value As Integer)
+            _SmtpPort = Value
+        End Set
+    End Property
+
+    Public Sub SendSMTP(ByVal strFromAddress As String, _
+                    ByVal strFromName As String, _
+                    ByVal strToAddress As String, _
+                    ByVal strToName As String, _
+                    ByVal strReplyToAddrr As String, _
+                    ByVal strReplyToName As String, _
+                    ByVal strSubject As String, _
+                    ByVal strBody As String, _
+                    ByVal strAttachments As String)
+
+        Dim insMail As New MailMessage(New MailAddress(strFromAddress, strFromName), New MailAddress(strToAddress, strToName))
+        If strAttachments = Nothing Then strAttachments = ""
+        With insMail
+            .Subject = strSubject
+            .Body = strBody
+            '.ReplyTo = New MailAddress(strReplyToAddrr, strReplyToName)
+            .IsBodyHtml = True
+            If Not strAttachments.Equals(String.Empty) Then
+                Dim strFile As String
+                Dim strAttach() As String = strAttachments.Split(";")
+                For Each strFile In strAttach
+                    .Attachments.Add(New Attachment(strFile.Trim()))
+                Next
+            End If
+        End With
+
+        Dim smtp As New System.Net.Mail.SmtpClient(SmtpServer)
+        smtp.EnableSsl = SmtpSsl
+        smtp.Port = SmtpPort
+        If SmtpCredentials = True Then
+            smtp.UseDefaultCredentials = True
+        Else
+            smtp.UseDefaultCredentials = False
+            smtp.Credentials = New System.Net.NetworkCredential(SmtpUser, DecryptText(SmtpPassword))
+        End If
+        'smtp.Host = CurVar.SmtpServer
+        smtp.Send(insMail)
+
+    End Sub
+
+    Public Function EmailAddressCheck(ByVal emailAddress As String) As Boolean
+        Dim pattern As String = "^[a-zA-Z][\w\.-]*[a-zA-Z0-9]@[a-zA-Z0-9][\w\.-]*[a-zA-Z0-9]\.[a-zA-Z][a-zA-Z\.]*[a-zA-Z]$"
+        Dim emailAddressMatch As RegularExpressions.Match = RegularExpressions.Regex.Match(emailAddress, pattern)
+        If emailAddressMatch.Success Then
+            EmailAddressCheck = True
+        Else
+            EmailAddressCheck = False
+        End If
+        Return EmailAddressCheck
+    End Function
+#End Region
 End Class
