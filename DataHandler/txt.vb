@@ -668,7 +668,7 @@ Public Class txt
                 'fileAgeInDays = fileAge.Days
             Next
 
-            If Directory.GetDirectories(strFileRoot).Length > 0 Then
+            If Directory.GetDirectories(strFileRoot).Length > 0 And SubFolders = True Then
                 For Each childFolder In Directory.GetDirectories(strFileRoot)
                     GetFilesInFolder(childFolder, strFileFilter)
                 Next
