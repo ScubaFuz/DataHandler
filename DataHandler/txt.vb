@@ -977,6 +977,10 @@ Public Class txt
         Return True
     End Function
 
+    'Friend Function CheckElement(ByVal xmlDoc As XDocument, ByVal name As XName) As Boolean
+    '    Return xmlDoc.Descendants(name).Any()
+    'End Function
+
     Public Function CheckNodeElement(ByVal xmlCheckNode As XmlNode, ByVal strName As String) As Boolean
         Dim xNode As XmlNode = FindXmlChildNode(xmlCheckNode, strName)
         If xNode Is Nothing Then
@@ -1121,6 +1125,7 @@ Public Class txt
     Private _SmtpReply As String = ""
     Private _SmtpSsl As Boolean = 1
     Private _SmtpPort As Integer = 25
+    Private _SmtpRecipient As String = ""
 
     Public Property SmtpServer() As String
         Get
@@ -1185,6 +1190,15 @@ Public Class txt
         End Set
     End Property
 
+    Public Property SmtpRecipient() As String
+        Get
+            Return _SmtpRecipient
+        End Get
+        Set(ByVal Value As String)
+            _SmtpRecipient = Value
+        End Set
+    End Property
+
     Public Sub SendSMTP(ByVal strFromAddress As String, _
                     ByVal strFromName As String, _
                     ByVal strToAddress As String, _
@@ -1222,6 +1236,7 @@ Public Class txt
         End If
         'smtp.Host = CurVar.SmtpServer
         smtp.Send(insMail)
+        insMail.Attachments.Dispose()
 
     End Sub
 
@@ -1235,5 +1250,7 @@ Public Class txt
         End If
         Return EmailAddressCheck
     End Function
+
 #End Region
+
 End Class
