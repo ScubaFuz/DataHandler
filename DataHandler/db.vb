@@ -189,6 +189,7 @@ Public Class db
             If UCase(_LoginMethod) = "SQL" Then
                 _DataConnectionString = _
                 "user id=" & _LoginName & ";" & _
+                "MultipleActiveResultSets=True;" & _
                 "data source=" & _DataLocation & ";" & _
                 "persist security info=True;" & _
                 "initial catalog=" & _DatabaseName & ";" & _
@@ -197,6 +198,7 @@ Public Class db
             Else
                 _DataConnectionString = _
                 "integrated security=SSPI;" & _
+                "MultipleActiveResultSets=True;" & _
                 "data source=""" & _DataLocation & """;" & _
                 "persist security info=False;" & _
                 "Connection Timeout=" & _ConnectionTimeout & ";" & _
@@ -433,6 +435,7 @@ Public Class db
     Public Function UploadSqlData(ByVal objDataTable As DataTable) As Integer
         Dim intRecordsAffected As Integer = 0
         Dim bcp As System.Data.SqlClient.SqlBulkCopy = New System.Data.SqlClient.SqlBulkCopy(SqlConnection)
+        If SqlConnection.State = ConnectionState.Open Then SqlConnection.Close()
         If SqlConnection.State = ConnectionState.Closed Then SqlConnection.Open()
         bcp.DestinationTableName = DataTableName
         Dim reader As DataTableReader = objDataTable.CreateDataReader()
