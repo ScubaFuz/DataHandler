@@ -775,6 +775,46 @@ Public Class txt
         Return xmlDoc
     End Function
 
+    Public Function LoadXml(strPathFile As String) As XmlDocument
+        Dim xmlDoc As XmlDocument = CreateRootDocument(Nothing, Nothing, Nothing)
+        If CheckFile(PathConvert(strPathFile)) = True Then
+            Try
+                xmlDoc.Load(PathConvert(strPathFile))
+            Catch ex As Exception
+                Return Nothing
+            End Try
+        End If
+        Return xmlDoc
+    End Function
+
+    Public Function XmlToDataset(xmlDoc As XmlDocument) As DataSet
+        Dim rdrXml As New XmlNodeReader(xmlDoc)
+        Dim dtsOutput As New DataSet
+        dtsOutput.ReadXml(rdrXml)
+        Return dtsOutput
+    End Function
+
+    Public Function LoadXmlToDataset(strPathFile As String) As DataSet
+        Dim xmlDoc As XmlDocument = LoadXml(strPathFile)
+        Dim dtsOutput As DataSet = XmlToDataset(xmlDoc)
+        Return dtsOutput
+    End Function
+
+    Public Function LoadXmlFile(ByVal xmlDoc As XmlDocument, ByVal xmlFile As String) As Boolean
+        '** This is the first to start. Check to see if the file exists
+        If CheckFile(xmlFile) Then
+            '** Load the file and check it's integrity
+            Try
+                xmlDoc.Load(PathConvert(xmlFile))
+                Return True
+            Catch ex As Exception
+                Return False
+            End Try
+        Else
+            Return False
+        End If
+    End Function
+
     Public Function AddNode(ByVal xmlDoc As XmlDocument, ByVal ParentNode As String, ByVal NewNode As XmlNode, Optional ByVal SearchNode As String = Nothing, Optional ByVal SearchValue As String = Nothing) As XmlDocument
         Dim tmpNode As XmlNode = FindXmlNode(xmlDoc, ParentNode, SearchNode, SearchValue)
         tmpNode.AppendChild(NewNode)
@@ -880,21 +920,6 @@ Public Class txt
         End If
         FindNodes = xmlDoc.SelectNodes(strXpath)
         Return FindNodes
-    End Function
-
-    Public Function LoadXmlFile(ByVal xmlDoc As XmlDocument, ByVal xmlFile As String) As Boolean
-        '** This is the first to start. Check to see if the file exists
-        If CheckFile(xmlFile) Then
-            '** Load the file and check it's integrity
-            Try
-                xmlDoc.Load(PathConvert(xmlFile))
-                Return True
-            Catch ex As Exception
-                Return False
-            End Try
-        Else
-            Return False
-        End If
     End Function
 
     Public Function RemoveNode(ByVal xmlDoc As XmlDocument, ByVal OldNode As String, ByVal SearchNode As String, ByVal SearchValue As String) As XmlDocument
