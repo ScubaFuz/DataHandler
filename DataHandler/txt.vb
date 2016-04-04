@@ -305,6 +305,21 @@ Public Class txt
         Return strPath
     End Function
 
+    Public Function DatasetCheck(dtsInput As DataSet, Optional intTable As Integer = 0) As Boolean
+        Dim blnOK As Boolean = True
+
+        Try
+            If dtsInput Is Nothing Then Return False
+            If dtsInput.Tables.Count = 0 Then Return False
+            If dtsInput.Tables.Count < intTable + 1 Then Return False
+            If dtsInput.Tables(intTable).Rows.Count = 0 Then Return False
+        Catch ex As Exception
+            Return False
+        End Try
+
+        Return blnOK
+    End Function
+
     Public Function CsvToDataSet(strFileName As String, blnHasHeaders As Boolean, Optional Delimiter As String = ",") As DataSet
         Dim dtsOutput As New DataSet
         Dim dttOutput As New DataTable
