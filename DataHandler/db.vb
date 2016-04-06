@@ -236,12 +236,18 @@ Public Class db
             If DataBase.State = ConnectionState.Closed Then DataBase.Open()
             If DataBase.State = ConnectionState.Open Then
                 DataBaseOnline = True
+                ErrorLevel = 0
+                ErrorMessage = ""
             Else
                 DataBaseOnline = False
+                ErrorLevel = -1
+                ErrorMessage = "Could not open database"
             End If
             If DataBase.State = ConnectionState.Open Then DataBase.Close()
         Catch ex As Exception
             DataBaseOnline = False
+            ErrorLevel = -1
+            ErrorMessage = ex.Message
         Finally
             If DataBase.State = ConnectionState.Open Then DataBase.Close()
         End Try
@@ -394,8 +400,27 @@ Public Class db
 
     End Function
 
+    Private Function CreateSingleDataSet(Value As String) As DataSet
+        Dim dtsData As New DataSet("DataSet1")
+        Dim dttInput As New DataTable("Table1")
+        Dim Column As New DataColumn("ReturnValue")
+        Column.DataType = System.Type.GetType("System.String")
+        dttInput.Columns.Add(Column)
+        Dim tRow As DataRow = dttInput.NewRow
+        dttInput.Rows.Add(tRow)
+        dttInput.Rows(0).Item(0) = Value
+        dtsData.Tables.Add(dttInput)
+        Return dtsData
+    End Function
+
     Private Sub UpdateSqlData(ByVal mySelectQuery As String, ByVal DataBase As System.Data.SqlClient.SqlConnection)
         dbMessage = Nothing
+        ErrorLevel = 0
+        ErrorMessage = ""
+        CheckDB()
+        If DataBaseOnline = False Then
+            Exit Sub
+        End If
         Dim myCommand As New System.Data.SqlClient.SqlCommand(mySelectQuery, DataBase)
         If DataBase.State = ConnectionState.Closed Then DataBase.Open()
         Try
@@ -403,6 +428,8 @@ Public Class db
             myReader.Close()
         Catch ex As Exception
             dbMessage = ex.Message
+            ErrorLevel = -1
+            ErrorMessage = ex.Message
         End Try
 
         If DataBase.State = ConnectionState.Open Then DataBase.Close()
