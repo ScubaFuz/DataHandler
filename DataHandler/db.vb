@@ -15,7 +15,6 @@ Public Class db
     Private _SqlVersion As Integer = 0
     Private _RowsAffected As Integer = 0
 
-    Public dbMessage As String
     Private _ErrorLevel As Integer = 0
     Private _ErrorMessage As String = ""
 
@@ -108,20 +107,13 @@ Public Class db
 
     Public ReadOnly Property SqlConnection() As System.Data.SqlClient.SqlConnection
         Get
-            dbMessage = Nothing
-            'If String.IsNullOrEmpty(_SqlConnection.ConnectionString) Then
-            '_SqlConnection.Dispose()
-            '_SqlConnection = New System.Data.SqlClient.SqlConnection
             _SqlConnection.ConnectionString = _DataConnectionString
-            'End If
-
             Return _SqlConnection
         End Get
     End Property
 
     Public ReadOnly Property AccessConnection() As System.Data.OleDb.OleDbConnection
         Get
-            dbMessage = Nothing
             _AccessConnection.ConnectionString = _DataConnectionString
             Return _AccessConnection
         End Get
@@ -302,14 +294,16 @@ Public Class db
             If ReturnData = True Then
                 objDataTemp = GetAccessData(SqlQuery, AccessConnection)
             ElseIf ReturnData = False Then
-                UpdateAccessData(SqlQuery, AccessConnection)
+                RowsAffected = UpdateAccessData(SqlQuery, AccessConnection)
             End If
         End If
         QueryDatabase = objDataTemp
     End Function
 
     Private Function GetSqlData(ByVal mySelectQuery As String, ByVal DataBase As System.Data.SqlClient.SqlConnection) As DataSet
-        dbMessage = Nothing
+        ErrorLevel = 0
+        ErrorMessage = ""
+
         Dim myCommand As New System.Data.SqlClient.SqlCommand(mySelectQuery, DataBase)
         Dim dataSet1 As New DataSet("DataSet1")
 
@@ -336,7 +330,8 @@ Public Class db
                             Try
                                 dteInput.Rows(RecordCount).Item(i) = myReader(i)
                             Catch ex As Exception
-                                dbMessage = ex.Message
+                                ErrorLevel = -1
+                                ErrorMessage = ex.Message
                             End Try
                         Next
                     Else
@@ -344,13 +339,15 @@ Public Class db
                             Try
                                 dteInput.Rows(RecordCount).Item(i) = myReader(i)
                             Catch ex As Exception
-                                dbMessage = ex.Message
+                                ErrorLevel = -1
+                                ErrorMessage = ex.Message
                             End Try
                         Next
                     End If
                     RecordCount += 1
                 End While
             End If
+            RowsAffected = myReader.RecordsAffected
             myReader.Close()
 
             Try
@@ -360,7 +357,10 @@ Public Class db
             End Try
             myCommand.Dispose()
             dataSet1.Tables.Add(dteInput)
+            If ErrorLevel = 0 Then ErrorMessage = RowsAffected & " Row(s) selected"
         Catch ex As Exception
+            ErrorLevel = -1
+            ErrorMessage = ex.Message
             Return Nothing
         End Try
         GetSqlData = dataSet1
@@ -368,7 +368,9 @@ Public Class db
     End Function
 
     Private Function GetAccessData(ByVal mySelectQuery As String, ByVal DataBase As System.Data.OleDb.OleDbConnection) As DataSet
-        dbMessage = Nothing
+        ErrorLevel = 0
+        ErrorMessage = ""
+
         Dim myCommand As New System.Data.OleDb.OleDbCommand(mySelectQuery, DataBase)
         Dim dataSet1 As New DataSet("DataSet1")
         If DataBase.State = ConnectionState.Closed Then DataBase.Open()
@@ -393,7 +395,8 @@ Public Class db
                         Try
                             dteInput.Rows(RecordCount).Item(i) = myReader(i)
                         Catch ex As Exception
-                            dbMessage = ex.Message
+                            ErrorLevel = -1
+                            ErrorMessage = ex.Message
                         End Try
                     Next
                 Else
@@ -401,16 +404,19 @@ Public Class db
                         Try
                             dteInput.Rows(RecordCount).Item(i) = myReader(i)
                         Catch ex As Exception
-                            dbMessage = ex.Message
+                            ErrorLevel = -1
+                            ErrorMessage = ex.Message
                         End Try
                     Next
                 End If
                 RecordCount += 1
             End While
         End If
+        RowsAffected = myReader.RecordsAffected
         myReader.Close()
         If DataBase.State = ConnectionState.Open Then DataBase.Close()
         myCommand.Dispose()
+        If ErrorLevel = 0 Then ErrorMessage = RowsAffected & " Row(s) selected"
         dataSet1.Tables.Add(dteInput)
         GetAccessData = dataSet1
 
@@ -430,7 +436,6 @@ Public Class db
     End Function
 
     Private Function UpdateSqlData(ByVal mySelectQuery As String, ByVal DataBase As System.Data.SqlClient.SqlConnection) As Integer
-        dbMessage = Nothing
         ErrorLevel = 0
         ErrorMessage = ""
         CheckDB()
@@ -447,7 +452,6 @@ Public Class db
             ErrorLevel = 0
             ErrorMessage = intRowsAffected & " Row(s) updated"
         Catch ex As Exception
-            dbMessage = ex.Message
             ErrorLevel = -1
             ErrorMessage = ex.Message
         End Try
@@ -457,20 +461,25 @@ Public Class db
         Return intRowsAffected
     End Function
 
-    Private Sub UpdateAccessData(ByVal mySelectQuery As String, ByVal DataBase As System.Data.OleDb.OleDbConnection)
-        dbMessage = Nothing
+    Private Function UpdateAccessData(ByVal mySelectQuery As String, ByVal DataBase As System.Data.OleDb.OleDbConnection) As Integer
+        Dim intRowsAffected As Integer = 0
         Dim myCommand As New System.Data.OleDb.OleDbCommand(mySelectQuery, DataBase)
         If DataBase.State = ConnectionState.Closed Then DataBase.Open()
         Try
             Dim myReader As System.Data.OleDb.OleDbDataReader = myCommand.ExecuteReader(CommandBehavior.CloseConnection)
+            intRowsAffected = myReader.RecordsAffected
             myReader.Close()
+            ErrorLevel = 0
+            ErrorMessage = intRowsAffected & " Row(s) updated"
         Catch ex As Exception
-            dbMessage = ex.Message
+            ErrorLevel = -1
+            ErrorMessage = ex.Message
         End Try
 
         If DataBase.State = ConnectionState.Open Then DataBase.Close()
         myCommand.Dispose()
-    End Sub
+        Return intRowsAffected
+    End Function
 
     Public Function UploadSqlDataSet(ByVal objDataSet As DataSet) As Integer
         Dim intRecordsAffected As Integer = 0
@@ -593,6 +602,5 @@ Public Class db
     End Function
 
 #End Region
-
 
 End Class
