@@ -13,6 +13,7 @@ Public Class db
     Private _DataBaseChanged As Boolean = False
     Private _DatabaseOnline As Boolean = False
     Private _SqlVersion As Integer = 0
+    Private _RowsAffected As Integer = 0
 
     Public dbMessage As String
     Private _ErrorLevel As Integer = 0
@@ -171,6 +172,15 @@ Public Class db
         End Set
     End Property
 
+    Public Property RowsAffected() As Integer
+        Get
+            Return _RowsAffected
+        End Get
+        Set(ByVal Value As Integer)
+            _RowsAffected = Value
+        End Set
+    End Property
+
 #End Region
 
 #Region "Connection"
@@ -248,8 +258,6 @@ Public Class db
             DataBaseOnline = False
             ErrorLevel = -1
             ErrorMessage = ex.Message
-        Finally
-            If DataBase.State = ConnectionState.Open Then DataBase.Close()
         End Try
     End Sub
 
@@ -282,12 +290,13 @@ Public Class db
 #Region "Data Actions"
     Public Function QueryDatabase(ByVal SqlQuery As String, ByVal ReturnData As Boolean) As DataSet
         Dim objDataTemp As New DataSet
+        If String.IsNullOrWhiteSpace(SqlQuery) Then Return objDataTemp
 
         If UCase(_DataProvider) = "SQL" Then
             If ReturnData = True Then
                 objDataTemp = GetSqlData(SqlQuery, SqlConnection)
             ElseIf ReturnData = False Then
-                UpdateSqlData(SqlQuery, SqlConnection)
+                RowsAffected = UpdateSqlData(SqlQuery, SqlConnection)
             End If
         ElseIf UCase(_DataProvider) = "ACCESS" Then
             If ReturnData = True Then
@@ -303,50 +312,57 @@ Public Class db
         dbMessage = Nothing
         Dim myCommand As New System.Data.SqlClient.SqlCommand(mySelectQuery, DataBase)
         Dim dataSet1 As New DataSet("DataSet1")
-        If DataBase.State = ConnectionState.Closed Then DataBase.Open()
-        Dim myReader As System.Data.SqlClient.SqlDataReader = myCommand.ExecuteReader(CommandBehavior.CloseConnection)
 
-        Dim dteInput As New DataTable("Table1")
-        Dim RecordCount As Integer = 0
-        'Dim Records As String
-
-        If myReader.HasRows() = True Then
-            While myReader.Read()
-                Dim tRow As DataRow = dteInput.NewRow
-                dteInput.Rows.Add(tRow)
-
-                Dim i As Integer = 0
-                If RecordCount = 0 Then
-                    For i = 0 To myReader.FieldCount - 1
-                        Dim Column As New DataColumn(myReader.GetName(i))
-                        Column.DataType = myReader.GetFieldType(i)
-                        dteInput.Columns.Add(Column)
-
-                        Try
-                            dteInput.Rows(RecordCount).Item(i) = myReader(i)
-                        Catch ex As Exception
-                            dbMessage = ex.Message
-                        End Try
-                    Next
-                Else
-                    For i = 0 To myReader.FieldCount - 1
-                        Try
-                            dteInput.Rows(RecordCount).Item(i) = myReader(i)
-                        Catch ex As Exception
-                            dbMessage = ex.Message
-                        End Try
-                    Next
-                End If
-                RecordCount += 1
-            End While
-        End If
-        myReader.Close()
         Try
-            If DataBase.State = ConnectionState.Open Then DataBase.Close()
+            If DataBase.State = ConnectionState.Closed Then DataBase.Open()
+            Dim myReader As System.Data.SqlClient.SqlDataReader = myCommand.ExecuteReader(CommandBehavior.CloseConnection)
+
+            Dim dteInput As New DataTable("Table1")
+            Dim RecordCount As Integer = 0
+            'Dim Records As String
+
+            If myReader.HasRows() = True Then
+                While myReader.Read()
+                    Dim tRow As DataRow = dteInput.NewRow
+                    dteInput.Rows.Add(tRow)
+
+                    Dim i As Integer = 0
+                    If RecordCount = 0 Then
+                        For i = 0 To myReader.FieldCount - 1
+                            Dim Column As New DataColumn(myReader.GetName(i))
+                            Column.DataType = myReader.GetFieldType(i)
+                            dteInput.Columns.Add(Column)
+
+                            Try
+                                dteInput.Rows(RecordCount).Item(i) = myReader(i)
+                            Catch ex As Exception
+                                dbMessage = ex.Message
+                            End Try
+                        Next
+                    Else
+                        For i = 0 To myReader.FieldCount - 1
+                            Try
+                                dteInput.Rows(RecordCount).Item(i) = myReader(i)
+                            Catch ex As Exception
+                                dbMessage = ex.Message
+                            End Try
+                        Next
+                    End If
+                    RecordCount += 1
+                End While
+            End If
+            myReader.Close()
+
+            Try
+                If DataBase.State = ConnectionState.Open Then DataBase.Close()
+            Catch ex As Exception
+                'error closing connection
+            End Try
+            myCommand.Dispose()
+            dataSet1.Tables.Add(dteInput)
         Catch ex As Exception
+            Return Nothing
         End Try
-        myCommand.Dispose()
-        dataSet1.Tables.Add(dteInput)
         GetSqlData = dataSet1
 
     End Function
@@ -413,19 +429,23 @@ Public Class db
         Return dtsData
     End Function
 
-    Private Sub UpdateSqlData(ByVal mySelectQuery As String, ByVal DataBase As System.Data.SqlClient.SqlConnection)
+    Private Function UpdateSqlData(ByVal mySelectQuery As String, ByVal DataBase As System.Data.SqlClient.SqlConnection) As Integer
         dbMessage = Nothing
         ErrorLevel = 0
         ErrorMessage = ""
         CheckDB()
         If DataBaseOnline = False Then
-            Exit Sub
+            Exit Function
         End If
+        Dim intRowsAffected As Integer = 0
         Dim myCommand As New System.Data.SqlClient.SqlCommand(mySelectQuery, DataBase)
         If DataBase.State = ConnectionState.Closed Then DataBase.Open()
         Try
             Dim myReader As System.Data.SqlClient.SqlDataReader = myCommand.ExecuteReader(CommandBehavior.CloseConnection)
+            intRowsAffected = myReader.RecordsAffected
             myReader.Close()
+            ErrorLevel = 0
+            ErrorMessage = intRowsAffected & " Row(s) updated"
         Catch ex As Exception
             dbMessage = ex.Message
             ErrorLevel = -1
@@ -434,7 +454,8 @@ Public Class db
 
         If DataBase.State = ConnectionState.Open Then DataBase.Close()
         myCommand.Dispose()
-    End Sub
+        Return intRowsAffected
+    End Function
 
     Private Sub UpdateAccessData(ByVal mySelectQuery As String, ByVal DataBase As System.Data.OleDb.OleDbConnection)
         dbMessage = Nothing
