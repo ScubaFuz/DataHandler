@@ -361,6 +361,11 @@ Public Class db
         Catch ex As Exception
             ErrorLevel = -1
             ErrorMessage = ex.Message
+            Try
+                If DataBase.State = ConnectionState.Open Then DataBase.Close()
+            Catch ex2 As Exception
+                'error closing connection
+            End Try
             Return Nothing
         End Try
         GetSqlData = dataSet1
