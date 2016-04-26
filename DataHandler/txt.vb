@@ -210,11 +210,13 @@ Public Class txt
     End Function
 
     Public Function CreateFile(ByVal InputText As String, ByVal FileName As String) As Boolean
+        If FileName Is Nothing Then Return False
+        If FileName = String.Empty Then Return False
         If FileName.Length < 2 Then Return False
 
         Dim intCheckDir As Integer = 0, strCheckdir As String = Nothing
         intCheckDir = FileName.IndexOf("\")
-        If intCheckDir > 0 Then
+        If intCheckDir > -1 Then
             strCheckdir = FileName.Substring(0, FileName.LastIndexOf("\"))
         Else
             strCheckdir = System.Reflection.Assembly.GetCallingAssembly.Location.Substring(0, System.Reflection.Assembly.GetCallingAssembly.Location.LastIndexOf("\"))
