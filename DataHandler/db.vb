@@ -517,19 +517,21 @@ Public Class db
         Return intRecordsAffected
     End Function
 
-    Public Sub WriteLog(ByVal LogText As String, ByVal EntryLevel As Integer, ByVal LogLevel As Integer, Optional ByVal Sender As String = "")
-        Dim booLogItem As Boolean = False
+    Public Function WriteLog(ByVal LogText As String, ByVal EntryLevel As Integer, ByVal LogLevel As Integer, Optional ByVal Sender As String = "") As Boolean
         If Sender = Nothing Then Sender = Environment.MachineName
-
-        If LogLevel >= EntryLevel Then
-            LogText = Replace(LogText, "'", "~")
-            Dim strQuery As String = "INSERT INTO [dbo].[tbl_Logging] ([LogDate],[Logtext],[ClientPC])"
-            strQuery &= "VALUES(GetDate()," & LogText & "," & Sender & ")	"
-            'Dim strQuery As String = "exec usp_LoggingHandle 'Ins',NULL,'" & LogText & "','" & Sender & "'"
-            QueryDatabase(strQuery, False)
-        End If
-
-    End Sub
+        Try
+            If LogLevel >= EntryLevel Then
+                LogText = Replace(LogText, "'", "~")
+                Dim strQuery As String = "INSERT INTO [dbo].[tbl_Logging] ([LogDate],[Logtext],[ClientPC])"
+                strQuery &= "VALUES(GetDate()," & LogText & "," & Sender & ")	"
+                'Dim strQuery As String = "exec usp_LoggingHandle 'Ins',NULL,'" & LogText & "','" & Sender & "'"
+                QueryDatabase(strQuery, False)
+            End If
+        Catch ex As Exception
+            Return False
+        End Try
+        Return True
+    End Function
 
     Public Function ConvertToText(dtsInput As DataSet) As DataSet
         Dim dtsOutput As New DataSet

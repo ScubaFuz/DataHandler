@@ -69,7 +69,8 @@ Public Class txt
         End Set
     End Property
 
-    Public Sub WriteLog(ByVal LogText As String, ByVal EntryLevel As Integer, Optional ByVal Sender As String = Nothing)
+    Public Function WriteLog(ByVal LogText As String, ByVal EntryLevel As Integer, Optional ByVal Sender As String = Nothing) As Boolean
+        _Errormessage = ""
         Dim booLogItem As Boolean = False
         If Sender = Nothing Then Sender = Environment.MachineName
 
@@ -85,10 +86,11 @@ Public Class txt
                 objWriter = Nothing
             End If
         Catch ex As Exception
-            'Do nothing
+            _Errormessage = ex.Message
+            Return False
         End Try
-
-    End Sub
+        Return True
+    End Function
 
     Public Property Retenion() As String
         Get
