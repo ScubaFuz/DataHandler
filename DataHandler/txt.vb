@@ -1034,16 +1034,21 @@ Public Class txt
     End Function
 
     Public Function LoadItemList(xmlDoc As XmlDocument, strSearchItem As String, strSearchField As String, strSearchValue As String, strTargetItem As String, strDisplayItem As String) As System.Collections.Generic.List(Of String)
-        Dim xPNode As System.Xml.XmlNode = FindXmlNode(xmlDoc, strSearchItem, strSearchField, strSearchValue)
-        Dim blnSearchValueExists As Boolean = False
-        If Not xPNode Is Nothing Then
-            Dim ReturnValue As New System.Collections.Generic.List(Of String)
-            Dim xNode As System.Xml.XmlNode
-            For Each xNode In xPNode.SelectNodes(".//" & strTargetItem)
-                ReturnValue.Add(xNode.Item(strDisplayItem).InnerText)
-            Next
-            Return ReturnValue
-        End If
+        _Errormessage = ""
+        Try
+            Dim xPNode As System.Xml.XmlNode = FindXmlNode(xmlDoc, strSearchItem, strSearchField, strSearchValue)
+            Dim blnSearchValueExists As Boolean = False
+            If Not xPNode Is Nothing Then
+                Dim ReturnValue As New System.Collections.Generic.List(Of String)
+                Dim xNode As System.Xml.XmlNode
+                For Each xNode In xPNode.SelectNodes(".//" & strTargetItem)
+                    ReturnValue.Add(xNode.Item(strDisplayItem).InnerText)
+                Next
+                Return ReturnValue
+            End If
+        Catch ex As Exception
+            _Errormessage = ex.Message
+        End Try
         Return Nothing
     End Function
 
