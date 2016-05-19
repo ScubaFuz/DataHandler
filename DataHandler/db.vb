@@ -258,10 +258,6 @@ Public Class db
         Dim dtsData As DataSet = QueryDatabase(strQuery, True)
 
         SqlVersion = 0
-        If DataBaseOnline = False Then
-            Return SqlVersion
-        End If
-
         If dtsData Is Nothing Then Return 0
         If dtsData.Tables.Count = 0 Then Return 0
         If dtsData.Tables(0).Rows.Count = 0 Then Return 0
@@ -273,6 +269,7 @@ Public Class db
             Next
         Catch ex As Exception
             SqlVersion = 0
+            _ErrorMessage = ex.Message
         End Try
 
         Return SqlVersion
