@@ -776,7 +776,7 @@ Public Class txt
             'Skip this step
         Else
             Dim xNode As XmlNode = xmlDoc.CreateXmlDeclaration("1.0", "UTF-8", strStandAlone)
-            xmlDoc.AppendChild(xNode)
+            xmlDoc.InsertBefore(xNode, xmlDoc.FirstChild)
         End If
 
         If RootNode <> Nothing Then
@@ -1072,6 +1072,7 @@ Public Class txt
         Try
             Dim xmlDocExport As XmlDocument = CreateRootDocument(Nothing, Nothing, Nothing)
             xmlDocExport.LoadXml(dtsInput.GetXml())
+            xmlDocExport = CreateRootDocument(xmlDocExport, Nothing, Nothing)
             SaveXmlFile2(xmlDocExport, FileName, CreateDir)
         Catch ex As Exception
             If LogLocation.ToLower = "database" Then
