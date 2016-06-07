@@ -320,7 +320,9 @@ Public Class db
                     Dim i As Integer = 0
                     If RecordCount = 0 Then
                         For i = 0 To myReader.FieldCount - 1
-                            Dim Column As New DataColumn(myReader.GetName(i))
+                            Dim strColumnName As String = myReader.GetName(i)
+                            strColumnName = CheckColumnName(dteInput, strColumnName)
+                            Dim Column As New DataColumn(strColumnName)
                             Column.DataType = myReader.GetFieldType(i)
                             dteInput.Columns.Add(Column)
 
@@ -390,7 +392,9 @@ Public Class db
                 Dim i As Integer = 0
                 If RecordCount = 0 Then
                     For i = 0 To myReader.FieldCount - 1
-                        Dim Column As New DataColumn(myReader.GetName(i))
+                        Dim strColumnName As String = myReader.GetName(i)
+                        strColumnName = CheckColumnName(dteInput, strColumnName)
+                        Dim Column As New DataColumn(strColumnName)
                         Column.DataType = myReader.GetFieldType(i)
                         dteInput.Columns.Add(Column)
 
@@ -422,6 +426,28 @@ Public Class db
         dataSet1.Tables.Add(dteInput)
         GetAccessData = dataSet1
 
+    End Function
+
+    Private Function CheckColumnName(dteInput As DataTable, strColumnName As String) As String
+        Try
+            For Each column As DataColumn In dteInput.Columns
+                If column.ColumnName = strColumnName Then
+                    If IsNumeric(strColumnName.Substring(strColumnName.Length - 1, 1)) Then
+                        Dim intNumber As Integer = strColumnName.Substring(strColumnName.Length - 1, 1)
+                        strColumnName = strColumnName.Substring(0, strColumnName.Length - 1) & (intNumber + 1).ToString
+                        strColumnName = CheckColumnName(dteInput, strColumnName)
+                    Else
+                        strColumnName &= "1"
+                        strColumnName = CheckColumnName(dteInput, strColumnName)
+                    End If
+                    Exit For
+                End If
+            Next
+        Catch ex As Exception
+            ErrorLevel = -1
+            ErrorMessage = ex.Message
+        End Try
+        Return strColumnName
     End Function
 
     Private Function CreateSingleDataSet(Value As String) As DataSet
