@@ -432,14 +432,25 @@ Public Class db
         Try
             For Each column As DataColumn In dteInput.Columns
                 If column.ColumnName = strColumnName Then
-                    If IsNumeric(strColumnName.Substring(strColumnName.Length - 1, 1)) Then
-                        Dim intNumber As Integer = strColumnName.Substring(strColumnName.Length - 1, 1)
-                        strColumnName = strColumnName.Substring(0, strColumnName.Length - 1) & (intNumber + 1).ToString
-                        strColumnName = CheckColumnName(dteInput, strColumnName)
-                    Else
-                        strColumnName &= "1"
-                        strColumnName = CheckColumnName(dteInput, strColumnName)
+                    Dim intNumber As Integer = 1
+                    If strColumnName.LastIndexOf(")") = strColumnName.Length - 1 Then
+                        Dim intStart As Integer = strColumnName.LastIndexOf("(")
+                        If IsNumeric(strColumnName.Substring(intStart + 1, strColumnName.Length - (intStart + 1) - 1)) Then
+                            intNumber = strColumnName.Substring(intStart + 1, strColumnName.Length - (intStart + 1) - 1)
+                            strColumnName = strColumnName.Substring(0, intStart) & (intNumber + 1).ToString
+                        End If
                     End If
+                    strColumnName &= "(" & intNumber & ")"
+                    strColumnName = CheckColumnName(dteInput, strColumnName)
+
+                    'If IsNumeric(strColumnName.Substring(strColumnName.Length - 1, 1)) Then
+                    '    Dim intNumber As Integer = strColumnName.Substring(strColumnName.Length - 1, 1)
+                    '    strColumnName = strColumnName.Substring(0, strColumnName.Length - 1) & (intNumber + 1).ToString
+                    '    strColumnName = CheckColumnName(dteInput, strColumnName)
+                    'Else
+                    '    strColumnName &= "1"
+                    '    strColumnName = CheckColumnName(dteInput, strColumnName)
+                    'End If
                     Exit For
                 End If
             Next
