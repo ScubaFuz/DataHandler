@@ -436,8 +436,8 @@ Public Class db
                     If strColumnName.LastIndexOf(")") = strColumnName.Length - 1 Then
                         Dim intStart As Integer = strColumnName.LastIndexOf("(")
                         If IsNumeric(strColumnName.Substring(intStart + 1, strColumnName.Length - (intStart + 1) - 1)) Then
-                            intNumber = strColumnName.Substring(intStart + 1, strColumnName.Length - (intStart + 1) - 1)
-                            strColumnName = strColumnName.Substring(0, intStart) & (intNumber + 1).ToString
+                            intNumber = strColumnName.Substring(intStart + 1, strColumnName.Length - (intStart + 1) - 1) + 1
+                            strColumnName = strColumnName.Substring(0, intStart)
                         End If
                     End If
                     strColumnName &= "(" & intNumber & ")"
