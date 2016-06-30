@@ -8,6 +8,7 @@ Imports System.Security.Cryptography
 Imports System.Text
 Imports System.Environment.SpecialFolder
 Imports System.Net.Mail
+Imports System.Xml.XPath
 
 Public Class txt
 
@@ -927,17 +928,45 @@ Public Class txt
         Return FindNodes
     End Function
 
-    Public Function FindXmlChildNodes(ByVal xmlDoc As XmlNode, ByVal ReturnNode As String, Optional ByVal SearchNode As String = Nothing, Optional ByVal SearchValue As String = Nothing) As XmlNodeList
-        Dim FindNodes As XmlNodeList
+    Public Function FindXmlChildNodes(ByVal xmlDoc As XmlNode, ByVal ReturnNode As String, Optional ByVal SearchNode As String = Nothing, Optional ByVal SearchValue As String = Nothing, Optional SortField As String = Nothing) As XmlNodeList
         Dim strXpath As String = ReturnNode & ""
-        If Not SearchNode = Nothing Then
-            If Not SearchValue = Nothing Then
-                strXpath &= "[" & SearchNode & "='" & SearchValue & "']"
-            Else
-                strXpath &= "[" & SearchNode & "]"
+        Dim FindNodes As XmlNodeList = Nothing
+
+        If SortField Is Nothing Then
+            If Not SearchNode = Nothing Then
+                If Not SearchValue = Nothing Then
+                    strXpath &= "[" & SearchNode & "='" & SearchValue & "']"
+                Else
+                    strXpath &= "[" & SearchNode & "]"
+                End If
             End If
+            FindNodes = xmlDoc.SelectNodes(strXpath)
+        Else
+            Dim nav As XPathNavigator = xmlDoc.CreateNavigator()
+            Dim expr As XPathExpression
+
+            If Not SearchNode = Nothing Then
+                If Not SearchValue = Nothing Then
+                    strXpath &= "[" & SearchNode & "='" & SearchValue & "']"
+                Else
+                    strXpath &= "[" & SearchNode & "]"
+                End If
+            End If
+            expr = nav.Compile(strXpath)
+
+            expr.AddSort(SortField, XmlSortOrder.Ascending, XmlCaseOrder.None, "", XmlDataType.Number)
+
+            Dim iterator As XPathNodeIterator = nav.Select(expr)
+
+            Dim xmlCDoc As XmlDocument = CreateRootDocument(Nothing, "Sequenchel", Nothing)
+            Do While iterator.MoveNext()
+
+                Dim xNode As XmlNode = CType(iterator.Current, IHasXmlNode).GetNode()
+                Dim importNode As XmlNode = xmlCDoc.ImportNode(xNode, True)
+                xmlCDoc.Item("Sequenchel").AppendChild(importNode)
+            Loop
+            FindNodes = xmlCDoc.SelectNodes("Sequenchel/Relation")
         End If
-        FindNodes = xmlDoc.SelectNodes(strXpath)
         Return FindNodes
     End Function
 
