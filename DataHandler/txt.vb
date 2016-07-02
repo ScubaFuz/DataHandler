@@ -842,14 +842,14 @@ Public Class txt
     End Function
 
     Function CreateAppendElement(ByVal ParentNode As XmlNode, ByVal NodeName As String, Optional ByVal InnerText As String = Nothing, Optional ByVal UpdateMode As Boolean = False) As XmlElement
-        If CheckNodeElement(ParentNode, NodeName) = False Or UpdateMode = False Then
+        If CheckElement(ParentNode, NodeName) = False Or UpdateMode = False Then
             Dim xmlEl As XmlElement = ParentNode.OwnerDocument.CreateElement(NodeName)
             If Not (InnerText Is Nothing) Then xmlEl.InnerText = InnerText
             ParentNode.AppendChild(xmlEl)
             Return xmlEl
         Else
             If Not (InnerText Is Nothing) Then ParentNode.Item(NodeName).InnerText = InnerText
-            Return FindXmlChildNode(ParentNode, NodeName, NodeName, InnerText)
+            Return FindXmlNode(ParentNode, NodeName, NodeName, InnerText)
         End If
     End Function
 
@@ -869,40 +869,26 @@ Public Class txt
         Dim FindNode As XmlNode
         Dim root As XmlElement = xmlDoc.DocumentElement
         If root Is Nothing Then Return Nothing
-
-        Dim strXpath As String = "//" & ReturnNode
-        If SearchNode = Nothing Then
-            strXpath &= "[1]"
-        Else
-            If SearchValue = Nothing Then
-                If ReturnNode = SearchNode Then
-                    strXpath &= "[1]"
-                Else
-                    strXpath &= "[" & SearchNode & "]"
-                End If
-            ElseIf ReturnNode = SearchNode Then
-                strXpath &= "[text()='" & SearchValue & "']"
-            Else
-                strXpath &= "[" & SearchNode & "='" & SearchValue & "']"
-            End If
-        End If
-        FindNode = root.SelectSingleNode(strXpath)
+        ReturnNode = "//" & ReturnNode
+        FindNode = FindXmlNode(root, ReturnNode, SearchNode, SearchValue)
         Return FindNode
     End Function
 
-    Public Function FindXmlChildNode(ByVal xmlDoc As XmlNode, ByVal ReturnNode As String, Optional ByVal SearchNode As String = Nothing, Optional ByVal SearchValue As String = Nothing) As XmlNode
+    Public Function FindXmlNode(ByVal xmlDoc As XmlNode, ByVal ReturnNode As String, Optional ByVal SearchNode As String = Nothing, Optional ByVal SearchValue As String = Nothing) As XmlNode
         Dim FindNode As XmlNode
         Dim strXpath As String = ReturnNode
+        Dim strReturnNode As String = ReturnNode.Replace("//", "")
+
         If SearchNode = Nothing Then
             strXpath &= "[1]"
         Else
             If SearchValue = Nothing Then
-                If ReturnNode = SearchNode Then
+                If strReturnNode = SearchNode Then
                     strXpath &= "[1]"
                 Else
                     strXpath &= "[" & SearchNode & "]"
                 End If
-            ElseIf ReturnNode = SearchNode Then
+            ElseIf strReturnNode = SearchNode Then
                 strXpath &= "[text()='" & SearchValue & "']"
             Else
                 strXpath &= "[" & SearchNode & "='" & SearchValue & "']"
@@ -912,11 +898,21 @@ Public Class txt
         Return FindNode
     End Function
 
-    Public Function FindXmlNodes(ByVal xmlDoc As XmlDocument, ByVal ReturnNode As String, Optional ByVal SearchNode As String = Nothing, Optional ByVal SearchValue As String = Nothing) As XmlNodeList
-        Dim FindNodes As XmlNodeList
+    Public Function FindXmlNodes(ByVal xmlDoc As XmlDocument, ByVal ReturnNode As String, Optional ByVal SearchNode As String = Nothing, Optional ByVal SearchValue As String = Nothing, Optional SortField As String = Nothing) As XmlNodeList
+        Dim strXpath As String = ReturnNode & ""
+        Dim FindNodes As XmlNodeList = Nothing
+
         Dim root As XmlElement = xmlDoc.DocumentElement
         If root Is Nothing Then Return Nothing
+
+        FindNodes = FindXmlNodes(root, ReturnNode, SearchNode, SearchValue, SortField)
+        Return FindNodes
+    End Function
+
+    Public Function FindXmlNodes(ByVal xmlDoc As XmlNode, ByVal ReturnNode As String, Optional ByVal SearchNode As String = Nothing, Optional ByVal SearchValue As String = Nothing, Optional SortField As String = Nothing) As XmlNodeList
         Dim strXpath As String = ReturnNode & ""
+        Dim FindNodes As XmlNodeList = Nothing
+
         If Not SearchNode = Nothing Then
             If Not SearchValue = Nothing Then
                 strXpath &= "[" & SearchNode & "='" & SearchValue & "']"
@@ -924,38 +920,15 @@ Public Class txt
                 strXpath &= "[" & SearchNode & "]"
             End If
         End If
-        FindNodes = root.SelectNodes(strXpath)
-        Return FindNodes
-    End Function
-
-    Public Function FindXmlChildNodes(ByVal xmlDoc As XmlNode, ByVal ReturnNode As String, Optional ByVal SearchNode As String = Nothing, Optional ByVal SearchValue As String = Nothing, Optional SortField As String = Nothing) As XmlNodeList
-        Dim strXpath As String = ReturnNode & ""
-        Dim FindNodes As XmlNodeList = Nothing
 
         If SortField Is Nothing Then
-            If Not SearchNode = Nothing Then
-                If Not SearchValue = Nothing Then
-                    strXpath &= "[" & SearchNode & "='" & SearchValue & "']"
-                Else
-                    strXpath &= "[" & SearchNode & "]"
-                End If
-            End If
             FindNodes = xmlDoc.SelectNodes(strXpath)
         Else
             Dim nav As XPathNavigator = xmlDoc.CreateNavigator()
             Dim expr As XPathExpression
 
-            If Not SearchNode = Nothing Then
-                If Not SearchValue = Nothing Then
-                    strXpath &= "[" & SearchNode & "='" & SearchValue & "']"
-                Else
-                    strXpath &= "[" & SearchNode & "]"
-                End If
-            End If
             expr = nav.Compile(strXpath)
-
             expr.AddSort(SortField, XmlSortOrder.Ascending, XmlCaseOrder.None, "", XmlDataType.Number)
-
             Dim iterator As XPathNodeIterator = nav.Select(expr)
 
             Dim xmlCDoc As XmlDocument = CreateRootDocument(Nothing, "Sequenchel", Nothing)
@@ -965,24 +938,32 @@ Public Class txt
                 Dim importNode As XmlNode = xmlCDoc.ImportNode(xNode, True)
                 xmlCDoc.Item("Sequenchel").AppendChild(importNode)
             Loop
-            FindNodes = xmlCDoc.SelectNodes("Sequenchel/Relation")
+
+            Dim strReturnNode As String = ReturnNode
+            If ReturnNode.LastIndexOf("/") > 0 Then
+                strReturnNode = "Sequenchel/" & ReturnNode.Substring(ReturnNode.LastIndexOf("/") + 1, ReturnNode.Length - (ReturnNode.LastIndexOf("/") + 1))
+            End If
+            FindNodes = xmlCDoc.SelectNodes(strReturnNode)
         End If
         Return FindNodes
     End Function
 
     Public Function RemoveNode(ByVal xmlDoc As XmlDocument, ByVal OldNode As String, ByVal SearchNode As String, ByVal SearchValue As String) As XmlDocument
+        Dim root As XmlElement = xmlDoc.DocumentElement
+        If root Is Nothing Then Return xmlDoc
+        root = RemoveNode(root, OldNode, SearchNode, SearchValue)
         '** Remove the old node
-        Dim tmpNode As XmlNode = FindXmlNode(xmlDoc, OldNode, SearchNode, SearchValue)
-        If Not tmpNode Is Nothing Then
-            'xmlDoc.Item("Sequenchel").Item("DataBases").RemoveChild(tmpNode)
-            tmpNode.ParentNode.RemoveChild(tmpNode)
-        End If
+        'Dim tmpNode As XmlNode = FindXmlNode(xmlDoc, OldNode, SearchNode, SearchValue)
+        'If Not tmpNode Is Nothing Then
+        '    'xmlDoc.Item("Sequenchel").Item("DataBases").RemoveChild(tmpNode)
+        '    tmpNode.ParentNode.RemoveChild(tmpNode)
+        'End If
         Return xmlDoc
     End Function
 
-    Public Function RemoveChildNode(ByVal xmlParentNode As XmlNode, ByVal OldNode As String, ByVal SearchNode As String, ByVal SearchValue As String) As XmlNode
+    Public Function RemoveNode(ByVal xmlParentNode As XmlNode, ByVal OldNode As String, ByVal SearchNode As String, ByVal SearchValue As String) As XmlNode
         '** Remove the old node
-        Dim tmpNode As XmlNode = FindXmlChildNode(xmlParentNode, OldNode, SearchNode, SearchValue)
+        Dim tmpNode As XmlNode = FindXmlNode(xmlParentNode, OldNode, SearchNode, SearchValue)
         If Not tmpNode Is Nothing Then
             'xmlDoc.Item("Sequenchel").Item("DataBases").RemoveChild(tmpNode)
             tmpNode.ParentNode.RemoveChild(tmpNode)
@@ -1043,7 +1024,13 @@ Public Class txt
     End Sub
 
     Public Function CheckElement(ByVal xmlDoc As XmlDocument, ByVal strName As String) As Boolean
-        Dim xNode As XmlNode = FindXmlNode(xmlDoc, strName)
+        Dim root As XmlElement = xmlDoc.DocumentElement
+        If root Is Nothing Then Return False
+        Return CheckElement(root, strName)
+    End Function
+
+    Public Function CheckElement(ByVal xmlNode As XmlNode, ByVal strName As String) As Boolean
+        Dim xNode As XmlNode = FindXmlNode(xmlNode, strName)
         If xNode Is Nothing Then
             Return False
         End If
@@ -1053,14 +1040,6 @@ Public Class txt
     'Friend Function CheckElement(ByVal xmlDoc As XDocument, ByVal name As XName) As Boolean
     '    Return xmlDoc.Descendants(name).Any()
     'End Function
-
-    Public Function CheckNodeElement(ByVal xmlCheckNode As XmlNode, ByVal strName As String) As Boolean
-        Dim xNode As XmlNode = FindXmlChildNode(xmlCheckNode, strName)
-        If xNode Is Nothing Then
-            Return False
-        End If
-        Return True
-    End Function
 
     Public Function LoadItemList(xmlDoc As XmlDocument, strSearchItem As String, strSearchField As String, strSearchValue As String, strTargetItem As String, strDisplayItem As String) As System.Collections.Generic.List(Of String)
         _Errormessage = ""
@@ -1081,20 +1060,10 @@ Public Class txt
         Return Nothing
     End Function
 
-    Public Sub ExportDataTableToXML(dttInput As DataTable, strFileName As String)
-        Try
-            Dim dtsInput As New DataSet
-            dtsInput.Tables.Add(dttInput)
-            ExportDataSetToXML(dtsInput, strFileName)
-        Catch ex As Exception
-            If LogLocation.ToLower = "database" Then
-                Dim dhdDb As New DataHandler.db
-                dhdDb.WriteLog(ex.Message, 1, LogLevel)
-            Else
-                WriteLog(ex.Message, 1, LogLevel)
-                'If DevMode Then MessageBox.Show(dhdText.LogFileName & Environment.NewLine & dhdText.LogLocation & Environment.NewLine & dhdText.LogLevel)
-            End If
-        End Try
+    Public Sub ExportDataSetToXML(dttInput As DataTable, strFileName As String, Optional ByVal CreateDir As Boolean = False)
+        Dim dtsInput As New DataSet
+        dtsInput.Tables.Add(dttInput)
+        ExportDataSetToXML(dtsInput, strFileName, CreateDir)
     End Sub
 
     Public Sub ExportDataSetToXML(dtsInput As DataSet, FileName As String, Optional ByVal CreateDir As Boolean = False)
@@ -1113,13 +1082,6 @@ Public Class txt
             End If
         End Try
     End Sub
-
-    'Public Function CreateBasicXmlDocument() As XmlDocument
-    '    Dim xmlDoc As New XmlDocument
-    '    Dim xmlDec As XmlDeclaration = xmlDoc.CreateXmlDeclaration("1.0", "utf-8", "yes")
-    '    xmlDoc.InsertBefore(xmlDec, xmlDoc.DocumentElement)
-    '    Return xmlDoc
-    'End Function
 
 #End Region
 
