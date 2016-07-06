@@ -874,7 +874,7 @@ Public Class txt
         Return FindNode
     End Function
 
-    Public Function FindXmlNode(ByVal xmlDoc As XmlNode, ByVal ReturnNode As String, Optional ByVal SearchNode As String = Nothing, Optional ByVal SearchValue As String = Nothing) As XmlNode
+    Public Function FindXmlNode(ByVal xNode As XmlNode, ByVal ReturnNode As String, Optional ByVal SearchNode As String = Nothing, Optional ByVal SearchValue As String = Nothing) As XmlNode
         Dim FindNode As XmlNode
         Dim strXpath As String = ReturnNode
         Dim strReturnNode As String = ReturnNode.Replace("//", "")
@@ -894,7 +894,7 @@ Public Class txt
                 strXpath &= "[" & SearchNode & "='" & SearchValue & "']"
             End If
         End If
-        FindNode = xmlDoc.SelectSingleNode(strXpath)
+        FindNode = xNode.SelectSingleNode(strXpath)
         Return FindNode
     End Function
 
@@ -1024,9 +1024,11 @@ Public Class txt
     End Sub
 
     Public Function CheckElement(ByVal xmlDoc As XmlDocument, ByVal strName As String) As Boolean
-        Dim root As XmlElement = xmlDoc.DocumentElement
-        If root Is Nothing Then Return False
-        Return CheckElement(root, strName)
+        Dim xNode As XmlNode = FindXmlNode(xmlDoc, strName)
+        If xNode Is Nothing Then
+            Return False
+        End If
+        Return True
     End Function
 
     Public Function CheckElement(ByVal xmlNode As XmlNode, ByVal strName As String) As Boolean
