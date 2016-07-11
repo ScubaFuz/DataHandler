@@ -1062,6 +1062,26 @@ Public Class txt
         Return Nothing
     End Function
 
+    Public Function LoadItemsList(xmlDoc As XmlDocument, strSearchItem As String, strSearchField As String, strSearchValue As String, strTargetItem As String) As System.Collections.Generic.List(Of String)
+        _ErrorMessage = ""
+        Try
+            Dim xNodeList As System.Xml.XmlNodeList = FindXmlNodes(xmlDoc, strSearchItem, strSearchField, strSearchValue)
+            Dim blnSearchValueExists As Boolean = False
+            If Not xNodeList Is Nothing Then
+                Dim ReturnValue As New System.Collections.Generic.List(Of String)
+                For Each xNode As System.Xml.XmlNode In xNodeList
+                    If CheckElement(xNode, strTargetItem) = True Then
+                        ReturnValue.Add(xNode.Item(strTargetItem).InnerText)
+                    End If
+                Next
+                Return ReturnValue
+            End If
+        Catch ex As Exception
+            _ErrorMessage = ex.Message
+        End Try
+        Return Nothing
+    End Function
+
     Public Sub ExportDataSetToXML(dttInput As DataTable, strFileName As String, Optional ByVal CreateDir As Boolean = False)
         Dim dtsInput As New DataSet
         dtsInput.Tables.Add(dttInput)
