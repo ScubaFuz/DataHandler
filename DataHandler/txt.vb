@@ -765,6 +765,18 @@ Public Class txt
 #End Region
 
 #Region "XML"
+
+    Private _XmlDoc As XmlDocument = Nothing
+
+    Public Property XmlDoc() As XmlDocument
+        Get
+            Return _XmlDoc
+        End Get
+        Set(ByVal Value As XmlDocument)
+            _XmlDoc = Value
+        End Set
+    End Property
+
     Public Function CreateRootDocument(ByVal xmlDoc As XmlDocument, ByVal RootNode As String, ByVal FirstNode As String, Optional ByVal StandAlone As Boolean = True) As XmlDocument
         If xmlDoc Is Nothing Then xmlDoc = New XmlDocument
         Dim strStandAlone As String = "no"
@@ -816,6 +828,7 @@ Public Class txt
 
     Public Function LoadXmlToDataset(strPathFile As String) As DataSet
         Dim xmlDoc As XmlDocument = LoadXml(strPathFile)
+        _XmlDoc = xmlDoc
         Dim dtsOutput As DataSet = XmlToDataset(xmlDoc)
         Return dtsOutput
     End Function
