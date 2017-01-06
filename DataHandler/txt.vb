@@ -13,12 +13,25 @@ Imports System.Xml.XPath
 Public Class txt
 
 #Region "General"
-    Private _Errormessage As String = ""
+    Private _ErrorLevel As Integer = 0
+    Private _ErrorMessage As String = ""
 
-    Public ReadOnly Property Errormessage() As String
+    Public Property ErrorLevel() As Integer
         Get
-            Return _Errormessage
+            Return _ErrorLevel
         End Get
+        Set(ByVal Value As Integer)
+            _ErrorLevel = Value
+        End Set
+    End Property
+
+    Public Property ErrorMessage() As String
+        Get
+            Return _ErrorMessage
+        End Get
+        Set(ByVal Value As String)
+            _ErrorMessage = Value
+        End Set
     End Property
 
     Public Function ReplaceFirst(ByVal text As String, ByVal search As String, ByVal replace As String) As String
@@ -325,21 +338,26 @@ Public Class txt
         Return blnOK
     End Function
 
-    Public Function CsvToDataSet(strFileName As String, blnHasHeaders As Boolean, Optional Delimiter As String = ",") As DataSet
+    Public Function CsvToDataSet(strFileName As String, blnHasHeaders As Boolean, Optional Delimiter As String = ",", Optional QuoteValues As Boolean = False) As DataSet
         Dim dtsOutput As New DataSet
         Dim dttOutput As New DataTable
         dtsOutput.Tables.Add(dttOutput)
 
         Dim intRowCount As Integer = 0
+        Dim intMaxColCount As Integer = 0
+        ErrorLevel = 0
+        ErrorMessage = ""
 
         Using MyReader As New Microsoft.VisualBasic.FileIO.TextFieldParser(strFileName)
             MyReader.TextFieldType = FileIO.FieldType.Delimited
+            MyReader.HasFieldsEnclosedInQuotes = QuoteValues
             MyReader.SetDelimiters(Delimiter)
             Dim currentRow As String()
             While Not MyReader.EndOfData
                 Try
                     currentRow = MyReader.ReadFields()
                     If intRowCount = 0 And blnHasHeaders = False Then
+                        intMaxColCount = currentRow.Count
                         For intColumns As Integer = 1 To currentRow.Count
                             dttOutput.Columns.Add("col" & intColumns)
                         Next
@@ -350,18 +368,29 @@ Public Class txt
                     Dim intColCount As Integer = 0
                     For Each currentField In currentRow
                         If intRowCount = 0 And blnHasHeaders = True Then
+                            intMaxColCount = currentRow.Count
                             'Create Columns
                             dttOutput.Columns.Add(currentField)
                         Else
                             'fill datarow
-                            dttOutput.Rows(dttOutput.Rows.Count - 1)(intColCount) = currentField
+                            If intColCount < intMaxColCount Then
+                                dttOutput.Rows(dttOutput.Rows.Count - 1)(intColCount) = currentField
+                            Else
+                                ErrorLevel = -1
+                                ErrorMessage = "To many columns for row " & intRowCount + 1 & ". Data may have been lost."
+                                Console.WriteLine("To many columns for row " & intRowCount + 1 & ". Data may have been lost.")
+                                WriteLog("To many columns for row " & intRowCount + 1 & ". Data may have been lost.", 1)
+                            End If
                         End If
                         intColCount += 1
                         'MsgBox(currentField)
                     Next
-                Catch ex As Microsoft.VisualBasic.
-                            FileIO.MalformedLineException
-                    MsgBox("Line " & ex.Message & "is not valid and will be skipped.")
+                Catch ex As Microsoft.VisualBasic.FileIO.MalformedLineException
+                    Console.WriteLine("Line " & intRowCount + 1 & " is not valid and will be skipped. " & ex.Message)
+                    WriteLog("Line " & intRowCount + 1 & " is not valid and will be skipped. " & ex.Message, 1)
+                Catch ex As Exception
+                    Console.WriteLine("Line " & intRowCount + 1 & " is not valid and will be skipped. " & ex.Message)
+                    WriteLog("Line " & intRowCount + 1 & " is not valid and will be skipped. " & ex.Message, 1)
                 End Try
                 intRowCount += 1
             End While
