@@ -338,7 +338,7 @@ Public Class txt
         Return blnOK
     End Function
 
-    Public Function CsvToDataSet(strFileName As String, blnHasHeaders As Boolean, Optional Delimiter As String = ",", Optional QuoteValues As Boolean = False) As DataSet
+    Public Function CsvToDataSet(strFileName As String, blnHasHeaders As Boolean, Optional Delimiter As String = ",", Optional QuoteValues As Boolean = False, Optional HeadersOnly As Boolean = False) As DataSet
         Dim dtsOutput As New DataSet
         Dim dttOutput As New DataTable
         dtsOutput.Tables.Add(dttOutput)
@@ -371,6 +371,8 @@ Public Class txt
                             intMaxColCount = currentRow.Count
                             'Create Columns
                             dttOutput.Columns.Add(currentField)
+                        ElseIf intRowCount > 0 And HeadersOnly = True Then
+                            Exit While
                         Else
                             'fill datarow
                             If intColCount < intMaxColCount Then
@@ -855,10 +857,13 @@ Public Class txt
         Return dtsOutput
     End Function
 
-    Public Function LoadXmlToDataset(strPathFile As String) As DataSet
+    Public Function LoadXmlToDataset(strPathFile As String, Optional LoadOnly As Boolean = False) As DataSet
         Dim xmlDoc As XmlDocument = LoadXml(strPathFile)
         _XmlDoc = xmlDoc
-        Dim dtsOutput As DataSet = XmlToDataset(xmlDoc)
+        Dim dtsOutput As New DataSet
+        If LoadOnly = False Then
+            dtsOutput = XmlToDataset(xmlDoc)
+        End If
         Return dtsOutput
     End Function
 
