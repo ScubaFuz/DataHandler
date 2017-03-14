@@ -338,7 +338,7 @@ Public Class txt
         Return blnOK
     End Function
 
-    Public Function CsvToDataSet(strFileName As String, blnHasHeaders As Boolean, Optional Delimiter As String = ",", Optional QuoteValues As Boolean = False, Optional HeadersOnly As Boolean = False) As DataSet
+    Public Function CsvToDataSet(strFileName As String, blnHasHeaders As Boolean, Optional Delimiter As String = ",", Optional QuoteValues As Boolean = False, Optional HeadersOnly As Boolean = False, Optional TextEncoding As String = "UTF8") As DataSet
         Dim dtsOutput As New DataSet
         Dim dttOutput As New DataTable
         dtsOutput.Tables.Add(dttOutput)
@@ -348,10 +348,26 @@ Public Class txt
         ErrorLevel = 0
         ErrorMessage = ""
 
-        Using MyReader As New Microsoft.VisualBasic.FileIO.TextFieldParser(strFileName)
+        Dim encInput As Text.Encoding = Text.Encoding.UTF8
+        Select Case TextEncoding.ToUpper
+            Case "UTF8"
+                encInput = Encoding.UTF8
+            Case "UTF7"
+                encInput = Encoding.UTF7
+            Case "UTF32"
+                encInput = Encoding.UTF32
+            Case "ASCII"
+                encInput = Encoding.ASCII
+            Case "UNICODE"
+                encInput = Encoding.Unicode
+            Case "BIGENDIANUNICODE"
+                encInput = Encoding.BigEndianUnicode
+        End Select
+        Using MyReader As New Microsoft.VisualBasic.FileIO.TextFieldParser(strFileName, encInput)
             MyReader.TextFieldType = FileIO.FieldType.Delimited
             MyReader.HasFieldsEnclosedInQuotes = QuoteValues
             MyReader.SetDelimiters(Delimiter)
+
             Dim currentRow As String()
             While Not MyReader.EndOfData
                 Try
@@ -379,20 +395,20 @@ Public Class txt
                                 dttOutput.Rows(dttOutput.Rows.Count - 1)(intColCount) = currentField
                             Else
                                 ErrorLevel = -1
-                                ErrorMessage = "To many columns for row " & intRowCount + 1 & ". Data may have been lost."
-                                Console.WriteLine("To many columns for row " & intRowCount + 1 & ". Data may have been lost.")
-                                WriteLog("To many columns for row " & intRowCount + 1 & ". Data may have been lost.", 1)
+                                ErrorMessage = "To many columns For row " & intRowCount + 1 & ". Data may have been lost."
+                                Console.WriteLine("Error: To many columns For row " & intRowCount + 1 & ". Data may have been lost.")
+                                WriteLog("To many columns For row " & intRowCount + 1 & ". Data may have been lost.", 1)
                             End If
                         End If
                         intColCount += 1
                         'MsgBox(currentField)
                     Next
                 Catch ex As Microsoft.VisualBasic.FileIO.MalformedLineException
-                    Console.WriteLine("Line " & intRowCount + 1 & " is not valid and will be skipped. " & ex.Message)
-                    WriteLog("Line " & intRowCount + 1 & " is not valid and will be skipped. " & ex.Message, 1)
+                    Console.WriteLine("Error: Line " & intRowCount + 1 & " Is Not valid And will be skipped. " & ex.Message)
+                    WriteLog("Line " & intRowCount + 1 & " Is Not valid And will be skipped. " & ex.Message, 1)
                 Catch ex As Exception
-                    Console.WriteLine("Line " & intRowCount + 1 & " is not valid and will be skipped. " & ex.Message)
-                    WriteLog("Line " & intRowCount + 1 & " is not valid and will be skipped. " & ex.Message, 1)
+                    Console.WriteLine("Error: Line " & intRowCount + 1 & " Is Not valid And will be skipped. " & ex.Message)
+                    WriteLog("Line " & intRowCount + 1 & " Is Not valid And will be skipped. " & ex.Message, 1)
                 End Try
                 intRowCount += 1
             End While
