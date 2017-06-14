@@ -338,7 +338,7 @@ Public Class txt
         Return blnOK
     End Function
 
-    Public Function CsvToDataSet(strFileName As String, blnHasHeaders As Boolean, Optional Delimiter As String = ",", Optional QuoteValues As Boolean = False, Optional HeadersOnly As Boolean = False, Optional TextEncoding As String = "UTF8") As DataSet
+    Public Function CsvToDataSet(strFileName As String, blnHasHeaders As Boolean, Optional Delimiter As String = ",", Optional QuoteValues As Boolean = False, Optional HeadersOnly As Boolean = False, Optional TextEncoding As String = "UTF8", Optional SkipRows As Integer = 0, Optional RowFilter As String = "") As DataSet
         Dim dtsOutput As New DataSet
         Dim dttOutput As New DataTable
         dtsOutput.Tables.Add(dttOutput)
@@ -351,33 +351,50 @@ Public Class txt
         Dim encInput As Text.Encoding = Text.Encoding.UTF8
         Select Case TextEncoding.ToUpper
             Case "UTF8"
-                encInput = Encoding.UTF8
+                encInput = Text.Encoding.UTF8
             Case "UTF7"
-                encInput = Encoding.UTF7
+                encInput = Text.Encoding.UTF7
             Case "UTF32"
-                encInput = Encoding.UTF32
+                encInput = Text.Encoding.UTF32
             Case "ASCII"
-                encInput = Encoding.ASCII
+                encInput = Text.Encoding.ASCII
             Case "UNICODE"
-                encInput = Encoding.Unicode
+                encInput = Text.Encoding.Unicode
             Case "BIGENDIANUNICODE"
-                encInput = Encoding.BigEndianUnicode
+                encInput = Text.Encoding.BigEndianUnicode
         End Select
         Using MyReader As New Microsoft.VisualBasic.FileIO.TextFieldParser(strFileName, encInput)
             MyReader.TextFieldType = FileIO.FieldType.Delimited
             MyReader.HasFieldsEnclosedInQuotes = QuoteValues
             MyReader.SetDelimiters(Delimiter)
 
+            Try
+                If SkipRows > 0 Then
+                    'Skip rows
+                    For iSkip As Integer = 1 To SkipRows
+                        MyReader.ReadLine()
+                    Next
+                End If
+            Catch ex As Exception
+                'Not enough rows to skip available
+                Console.WriteLine("Error while skipping Lines " & ex.Message)
+                WriteLog("Error while skipping Lines " & ex.Message, 1)
+                Return Nothing
+            End Try
+
             Dim currentRow As String()
             While Not MyReader.EndOfData
                 Try
                     currentRow = MyReader.ReadFields()
+
                     If intRowCount = 0 And blnHasHeaders = False Then
                         intMaxColCount = currentRow.Count
                         For intColumns As Integer = 1 To currentRow.Count
                             dttOutput.Columns.Add("col" & intColumns)
                         Next
                     End If
+
+                    'Add empty row
                     If intRowCount > 0 Or blnHasHeaders = False Then dttOutput.Rows.Add()
 
                     Dim currentField As String
@@ -391,6 +408,10 @@ Public Class txt
                             Exit While
                         Else
                             'fill datarow
+                            If intColCount = 0 AndAlso RowFilter <> "" AndAlso currentField.Length >= RowFilter.Length AndAlso currentField.Substring(0, RowFilter.Length) = RowFilter Then
+                                dttOutput.Rows.RemoveAt(dttOutput.Rows.Count - 1)
+                                Exit For
+                            End If
                             If intColCount < intMaxColCount Then
                                 dttOutput.Rows(dttOutput.Rows.Count - 1)(intColCount) = currentField
                             Else
@@ -508,6 +529,40 @@ Public Class txt
         End Try
     End Function
 
+    Public Function MoveFile(FileName As String, TargetFolder As String, Optional CreateDir As Boolean = False) As Boolean
+        Try
+            If CheckFile(FileName) = True Then
+                If CheckDir(TargetFolder, CreateDir) = True Then
+                    Dim intCheckDir As Integer = 0, strFileName As String = Nothing
+                    intCheckDir = FileName.LastIndexOf("\")
+                    If intCheckDir > -1 Then
+                        strFileName = FileName.Substring(intCheckDir, FileName.Length - intCheckDir)
+                    Else
+                        strFileName = FileName
+                    End If
+                    File.Move(FileName, TargetFolder & "\" & strFileName)
+                End If
+                'Dim ronRecycle As New FileIO.RecycleOption
+                'If Recycle = True Then
+                '    ronRecycle = FileIO.RecycleOption.SendToRecycleBin
+                'Else
+                '    ronRecycle = FileIO.RecycleOption.DeletePermanently
+                'End If
+                'Dim uioConfirm As New FileIO.UIOption
+                'If Confirm = True Then
+                '    uioConfirm = FileIO.UIOption.AllDialogs
+                'Else
+                '    uioConfirm = FileIO.UIOption.OnlyErrorDialogs
+                'End If
+                'My.Computer.FileSystem.DeleteFile(PathConvert(FileName), uioConfirm, ronRecycle)
+                Return True
+            Else
+                Return False
+            End If
+        Catch ex As Exception
+            Return False
+        End Try
+    End Function
 #End Region
 
 #Region "Search"

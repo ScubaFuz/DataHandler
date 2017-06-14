@@ -9,8 +9,8 @@ Imports System.Runtime.InteropServices
 ' Review the values of the assembly attributes
 
 <Assembly: AssemblyTitle("DataHandler")> 
-<Assembly: AssemblyDescription("Data Import-Export-ETL")> 
-<Assembly: AssemblyCompany("Thicor Services BV")> 
+<Assembly: AssemblyDescription("Data Import-Export-ETL")>
+<Assembly: AssemblyCompany("Thicor")>
 <Assembly: AssemblyProduct("Thicor DataHandler")> 
 <Assembly: AssemblyCopyright("Copyright © Thicor Services BV 2008-2013")> 
 <Assembly: AssemblyTrademark("")> 
@@ -29,6 +29,6 @@ Imports System.Runtime.InteropServices
 ' You can specify all the values or you can default the Build and Revision Numbers 
 ' by using the '*' as shown below:
 
-<Assembly: AssemblyVersion("4.3.1.34")>
+<Assembly: AssemblyVersion("4.3.2.1")>
 
-<Assembly: AssemblyFileVersion("4.3.1.34")>
+<Assembly: AssemblyFileVersion("4.3.2.1")>
