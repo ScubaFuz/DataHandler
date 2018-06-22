@@ -66,7 +66,7 @@ Public Class txt
             Return _LogLocation
         End Get
         Set(ByVal Value As String)
-            If Value.ToLower = "database" Or CheckDir(Value) = True Then
+            If Value.ToLower = "database" Or Value.ToLower = "console" Or CheckDir(Value) = True Then
                 _LogLocation = Value
             End If
         End Set
@@ -84,23 +84,27 @@ Public Class txt
     End Property
 
     Public Function WriteLog(ByVal LogText As String, ByVal EntryLevel As Integer, Optional ByVal Sender As String = Nothing) As Boolean
-        _Errormessage = ""
-        Dim booLogItem As Boolean = False
+        _ErrorMessage = ""
+        _ErrorLevel = 0
+        'Dim booLogItem As Boolean = False
         If Sender = Nothing Then Sender = Environment.MachineName
 
         Try
             If _LogLevel >= EntryLevel Then
-                Dim strDate As String
-                'intDate = Today.Year & [Enum].Format(GetType(Integer), Today.Month, "00") & [Enum].Format(GetType(Integer), Today.Day, "00")
-                strDate = Today.ToString("yyyyMMdd")
-                Dim objWriter As StreamWriter = File.AppendText(PathConvert(_LogLocation) & "\" & strDate & "_" & _LogFileName)
-                'objWriter.WriteLine(Format(GetType(Integer), Now.Hour, "00") & ":" & Format(GetType(Integer), Now.Minute, "00") & ":" & Format(GetType(Integer), Now.Second, "00") & vbTab & LogText)
-                objWriter.WriteLine(Now.ToString("HH:mm:ss") & vbTab & LogText)
-                objWriter.Close()
-                objWriter = Nothing
+                If LogLocation.ToLower = "console" Then
+                    Console.WriteLine(LogText)
+                Else
+                    Dim strDate As String
+                    strDate = Today.ToString("yyyyMMdd")
+                    Dim objWriter As StreamWriter = File.AppendText(PathConvert(_LogLocation) & "\" & strDate & "_" & _LogFileName)
+                    objWriter.WriteLine(Now.ToString("HH:mm:ss") & vbTab & LogText)
+                    objWriter.Close()
+                    objWriter = Nothing
+                End If
             End If
         Catch ex As Exception
             _Errormessage = ex.Message
+            _ErrorLevel = -1
             Return False
         End Try
         Return True
@@ -377,7 +381,6 @@ Public Class txt
                 End If
             Catch ex As Exception
                 'Not enough rows to skip available
-                Console.WriteLine("Error while skipping Lines " & ex.Message)
                 WriteLog("Error while skipping Lines " & ex.Message, 1)
                 Return Nothing
             End Try
@@ -416,20 +419,17 @@ Public Class txt
                                 dttOutput.Rows(dttOutput.Rows.Count - 1)(intColCount) = currentField
                             Else
                                 ErrorLevel = -1
-                                ErrorMessage = "To many columns For row " & intRowCount + 1 & ". Data may have been lost."
-                                Console.WriteLine("Error: To many columns For row " & intRowCount + 1 & ". Data may have been lost.")
-                                WriteLog("To many columns For row " & intRowCount + 1 & ". Data may have been lost.", 1)
+                                ErrorMessage = "Too many columns For row " & intRowCount + 1 & ". Data may have been lost."
+                                WriteLog("Error: " & ErrorMessage, 1)
                             End If
                         End If
                         intColCount += 1
                         'MsgBox(currentField)
                     Next
                 Catch ex As Microsoft.VisualBasic.FileIO.MalformedLineException
-                    Console.WriteLine("Error: Line " & intRowCount + 1 & " Is Not valid And will be skipped. " & ex.Message)
-                    WriteLog("Line " & intRowCount + 1 & " Is Not valid And will be skipped. " & ex.Message, 1)
+                    WriteLog("Error: Line " & intRowCount + 1 & " Is Not valid And will be skipped. " & ex.Message, 1)
                 Catch ex As Exception
-                    Console.WriteLine("Error: Line " & intRowCount + 1 & " Is Not valid And will be skipped. " & ex.Message)
-                    WriteLog("Line " & intRowCount + 1 & " Is Not valid And will be skipped. " & ex.Message, 1)
+                    WriteLog("Error: Line " & intRowCount + 1 & " Is Not valid And will be skipped. " & ex.Message, 1)
                 End Try
                 intRowCount += 1
             End While
