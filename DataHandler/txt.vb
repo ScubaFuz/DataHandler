@@ -460,6 +460,59 @@ Public Class txt
 
     End Function
 
+    Public Function TableToCsv(SqlConnection As SqlClient.SqlConnection, TableName As String, strFileName As String, Optional blnHasHeaders As Boolean = True, Optional Delimiter As String = ",", Optional QuoteValues As Boolean = False) As Boolean
+        If SqlConnection.State = ConnectionState.Closed Then SqlConnection.Open()
+
+        Using command As SqlClient.SqlCommand = New SqlClient.SqlCommand("SELECT * FROM " & TableName, SqlConnection)
+            Using reader As SqlClient.SqlDataReader = command.ExecuteReader
+                Using outputfile As StreamWriter = File.CreateText(strFileName)
+                    outputfile.WriteLine(GetColumnNames(reader, Delimiter))
+                    If reader.HasRows Then
+                        Dim strInput As String = ""
+                        While reader.Read
+                            strInput = ""
+                            For i As Integer = 0 To reader.FieldCount - 1
+                                ' reader.Item
+                                If i = 0 Then
+                                    If reader.IsDBNull(i) Then
+                                        strInput = ""
+                                    Else
+                                        strInput = reader(i).ToString
+                                    End If
+                                Else
+                                    If reader.IsDBNull(i) Then
+                                        strInput = strInput & Delimiter & ""
+                                    Else
+                                        strInput = strInput & Delimiter & reader(i).ToString
+                                    End If
+                                End If
+                            Next
+                            outputfile.WriteLine(strInput)
+
+                        End While
+                    End If
+                End Using
+            End Using
+        End Using
+        If SqlConnection.State = ConnectionState.Open Then SqlConnection.Close()
+    End Function
+
+    Private Function GetColumnNames(reader As IDataReader, delimiter As String) As IEnumerable
+        Dim result As String = ""
+
+        Dim i As Integer = 0
+        For i = 0 To reader.FieldCount - 1
+            If 1 = 0 Then
+                result = reader.GetName(i)
+            Else
+                result = result & delimiter & reader.GetName(i)
+            End If
+        Next
+        Return result
+
+    End Function
+
+
     Private Function QuoteValue(ByVal value As String, QuoteValues As Boolean) As String
         If QuoteValues = True Then
             Return String.Concat("""", value.Replace("""", """"""), """")

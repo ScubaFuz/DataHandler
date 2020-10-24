@@ -605,6 +605,10 @@ Public Class db
         Return newTable
     End Function
 
+    'Public Function ConvertToText(sqlField As SqlClient.SqlDataReader) As String
+    '    SqlClient.SqlDataReader(0)
+    'End Function
+
     Public Function EmptyToNull(dtsInput As DataSet) As DataSet
         Dim dtsOutput As New DataSet
         For Each Table As DataTable In dtsInput.Tables
